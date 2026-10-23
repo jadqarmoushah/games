@@ -75,8 +75,10 @@ main{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:16px;
   box-shadow:inset 0 0 0 3px color-mix(in srgb,var(--c) 60%,black)}
 .door.l{transform-origin:left center}
 .door.r{transform-origin:right center}
-.ctr.open .door.l{transform:rotateY(-112deg)}
-.ctr.open .door.r{transform:rotateY(112deg)}
+.ctr.open .door.l{transform:rotateY(-105deg);opacity:0;transition:transform 1.4s cubic-bezier(.6,.05,.25,1),opacity .5s 1s}
+.ctr.open .door.r{transform:rotateY(105deg);opacity:0;transition:transform 1.4s cubic-bezier(.6,.05,.25,1),opacity .5s 1s}
+.ctr.open .inside{z-index:3}
+.ctr .inside{opacity:0;transition:opacity .6s .6s}.ctr.open .inside{opacity:1}
 .door::before,.door::after{content:"";position:absolute;top:8%;bottom:8%;width:5px;border-radius:3px;background:linear-gradient(180deg,#9ea3a8,#5d6268);box-shadow:0 0 0 1px rgba(0,0,0,.4)}
 .door.l::before{right:22%} .door.l::after{right:44%}
 .door.r::before{left:22%} .door.r::after{left:44%}
@@ -114,6 +116,27 @@ main{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:16px;
 .status{font-size:13px;color:var(--dim);text-align:center;min-height:21px}
 .status b{color:var(--gold);font-family:var(--stencil);font-size:17px}
 
+/* situation banner */
+.sit{display:flex;gap:14px;align-items:center;padding:14px 16px;border-radius:8px;border:1px solid var(--line-2);background:var(--steel)}
+.sit .ic{font-size:30px;line-height:1}
+.sit .tt{font-family:var(--display);font-weight:800;font-size:20px;line-height:1.2}
+.sit .ss{font-size:14px;color:var(--dim)}
+.sit.secret{border-color:var(--sodium);background:linear-gradient(90deg,rgba(255,154,60,.16),var(--steel));box-shadow:0 0 0 3px var(--sodium-soft)}
+.sit.secret .big{font-family:var(--display);font-weight:800;font-size:26px;line-height:1.1}
+.how{font-size:14px;color:var(--dim);text-align:center}
+.how b{color:var(--ink)}
+/* result */
+.result{display:flex;flex-direction:column;gap:12px;align-items:center}
+.result h4{margin:0;font-size:12px;color:var(--faint);letter-spacing:.08em;font-weight:500}
+.winline{font-family:var(--display);font-weight:800;font-size:clamp(22px,4vw,30px);line-height:1.15;text-align:center;opacity:0;transition:opacity .4s}
+.winline.in{opacity:1}
+.winline .num{color:var(--sodium)}
+.outcome{display:flex;flex-direction:column;align-items:center;gap:4px;opacity:0;transition:opacity .5s}
+.outcome.in{opacity:1}
+.outcome .what{font-size:17px}
+.outcome .net{font-family:var(--stencil);font-weight:800;font-size:clamp(30px,6vw,46px);line-height:1;direction:ltr}
+.net.up{color:var(--ok)} .net.down{color:var(--red)}
+.knew{padding:8px 14px;border-radius:6px;background:var(--sodium-soft);border:1px solid rgba(255,154,60,.4)}
 /* reveal */
 .bids{display:flex;flex-direction:column;gap:4px;width:min(420px,100%);margin:0 auto}
 .brow{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:6px 12px;border-radius:5px;background:rgba(255,255,255,.03);opacity:0;transform:translateY(6px);transition:opacity .35s,transform .35s}
@@ -121,9 +144,10 @@ main{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:16px;
 .brow .n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .brow .v{font-family:var(--stencil);font-size:20px;font-weight:800;direction:ltr}
 .brow.win{background:var(--sodium-soft);outline:1px solid var(--sodium)}
+.brow.win .n::before{content:"🏆 "}
 .brow.win .v{color:var(--sodium)}
 .brow .v.zero{color:var(--faint)}
-.knew{font-size:14px;color:var(--dim);text-align:center}
+.knew{font-size:15px;color:var(--ink);text-align:center}
 .knew b{color:var(--sodium)}
 .effect{font-size:15px;text-align:center}
 .pick{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
@@ -398,9 +422,12 @@ main{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:16px;
       winner:win?win.id:null, price:win?win.v:0, delta:res.delta||0,
       bids:Object.keys(cash).map(id=>[id, bids[id]?bids[id].v:0]).sort((a,b)=>a[1]-b[1]),
       peekers:g.peekers.slice(), steal:null});
+    const nm=id=>H.players[id]?H.players[id].name:"تاجر";
+    const what = box.kind==="valuable"||box.kind==="normal" ? `${A.KINDS[box.kind]} ${box.value}` : A.KINDS[box.kind];
+    sys(win ? `الحاوية ${g.round} ← ${nm(win.id)} بـ ${win.v} · داخلها: ${what}` : `الحاوية ${g.round} بلا مشترٍ · داخلها: ${what}`);
     const steps=Object.keys(cash).length;
-    if(box.kind==="key" && win){ g.phase="steal"; g.deadline=Date.now()+(4.2+0.45*steps)*1000+A.STEAL_SECS*1000; }
-    else { g.phase="reveal"; g.deadline=Date.now()+(8+0.45*steps)*1000; }
+    if(box.kind==="key" && win){ g.phase="steal"; g.deadline=Date.now()+(4+0.5*steps)*1000+A.STEAL_SECS*1000; }
+    else { g.phase="reveal"; g.deadline=Date.now()+(11+0.5*steps)*1000; }
     commit();
   }
   function doSteal(target){
@@ -420,8 +447,6 @@ main{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:16px;
     const g=H.g, now=Date.now();
     if(g.phase==="bid"){
       const ids=Object.keys(H.players).filter(inGame), on=online();
-      const allIn = ids.filter(id=>on.has(id)).every(id=>g.bids[id]);
-      if(allIn && g.deadline-now>6000){ g.deadline=now+6000; commit(); }
       if(now>=g.deadline) reveal();
     }
     else if(g.phase==="steal" && now>=g.deadline) doSteal(null);
@@ -621,13 +646,20 @@ main{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:16px;
 
   function renderBid(s){
     const g=V.g, box=g.box;
-    const yard=el("div",{class:"yard"}, ctrEl(box,false));
-    s.append(yard);
+    const nPeek = V.players.filter(p=>p.cash!=null).length>=6 ? 2 : 1;
     if(P?.peek){
-      const c=yard.querySelector(".ctr");
-      c.append(el("div",{class:"peek"}, el("div",{}, el("div",{class:"t",text:"دخلت وشفت"}), el("div",{class:"v k-"+P.peek.kind,text:peekLabel(P.peek)}))));
+      s.append(el("div",{class:"sit secret"}, el("span",{class:"ic",text:"🤫"}), el("div",{},
+        el("div",{class:"ss",text:"دخلت الحاوية سرًا ورأيت ما فيها:"}),
+        el("div",{class:"big k-"+P.peek.kind,text:peekLabel(P.peek)}),
+        el("div",{class:"ss",text:"لا أحد غيرك يعرف. قل الحقيقة في الشات… أو اكذب."}))));
+    } else {
+      s.append(el("div",{class:"sit"}, el("span",{class:"ic",text:"🔒"}), el("div",{},
+        el("div",{class:"tt",text:nPeek===2?"اثنان منكم رأوا ما في هذه الحاوية.":"واحد منكم رأى ما في هذه الحاوية."}),
+        el("div",{class:"ss",text:"من؟ وهل يقول الحقيقة؟ اقرأ الشات."}))));
     }
+    s.append(el("div",{class:"yard"}, ctrEl(box,false)));
     if(!playing()){ s.append(el("div",{class:"status",text:"تتفرّج هذه المرة. تدخل المزاد القادم."})); return; }
+    s.append(el("div",{class:"how"}, "اكتب كم تدفع ثمن هذه الحاوية. ", el("b",{text:"أعلى عرض يأخذها"}), " ويدفع ثمنه."));
     const mp=meP(), max=mp.cash;
     const inp=el("input",{class:"bid-input",id:"bidInput",type:"number",inputmode:"numeric",min:"0",max:String(max),step:"50",placeholder:"0",value:P?.bid!=null?String(P.bid):""});
     const submit=()=>{ let v=Math.max(0,Math.min(max,Math.floor(+inp.value||0))); inp.value=String(v); send({t:"bid",v}); audio(); };
@@ -647,48 +679,53 @@ main{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:16px;
   function patchStage(){
     const st=$("bidStatus"); if(!st) return;
     st.replaceChildren();
-    if(P?.bid!=null){ st.append(P.bid>0?"عرضك ":"", P.bid>0?el("b",{text:fmt(P.bid)}):"لن تزايد هذه المرة", P.bid>0?" · تقدر تغيّره":""); }
-    else st.append("عرضك سري. لا أحد يراه قبل الكشف.");
+    if(P?.bid!=null){ st.append(P.bid>0?"✓ عرضك ":"", P.bid>0?el("b",{text:fmt(P.bid)}):"✓ لن تزايد على هذه", " · يُكشف للجميع عند انتهاء الوقت · تقدر تغيّره"); }
+    else st.append("عرضك سري حتى ينتهي الوقت.");
   }
 
   function renderReveal(s){
     const g=V.g, r=g.reveal; if(!r) return;
     const key=`${g.seq}.${r.round}`;
     const fresh=revealDone!==key;
-    const yard=el("div",{class:"yard"}, ctrEl({code:r.code,color:r.color}, !fresh, contentEls(r.kind,r.value)));
-    s.append(yard);
+    const W=r.winner, wn=W?(W===me?"أنت":nameOf(W)):null;
+    // 1) the bids, highest first
+    const res=el("div",{class:"result"});
+    res.append(el("h4",{text:"العروض"}));
     const list=el("div",{class:"bids"});
-    for(const [id,v] of r.bids){
-      const row=el("div",{class:"brow"+(fresh?"":" in")+(id===r.winner?" win":"")}, el("span",{class:"n",text:nameOf(id)+(id===me?" (أنت)":"")}), el("span",{class:"v"+(v?"":" zero"),text:v?fmt(v):"—"}));
-      list.append(row);
-    }
-    s.append(list);
-    const after=el("div",{id:"after",style:fresh?"opacity:0;transition:opacity .5s":""});
-    let eff;
-    if(!r.winner) eff="لم يزايد أحد. بقيت في الميناء.";
-    else if(r.kind==="valuable"||r.kind==="normal") eff=`${nameOf(r.winner)} · الثمن ${fmt(r.price)} · ${r.delta>=0?"ربح":"خسارة"} ${fmt(Math.abs(r.delta))}`;
-    else if(r.kind==="empty") eff=`${nameOf(r.winner)} · الثمن ${fmt(r.price)} · على لا شيء`;
-    else if(r.kind==="contra") eff=`${nameOf(r.winner)} · الثمن ${fmt(r.price)} · صودر نصف الرصيد`;
-    else eff=`${nameOf(r.winner)} · الثمن ${fmt(r.price)} · 🔑 المفتاح`;
-    after.append(el("div",{class:"effect",text:eff}));
-    if(r.peekers.length) after.append(el("div",{class:"knew"}, "كان يعرف: ", el("b",{text:r.peekers.map(id=>id===me?"أنت":nameOf(id)).join(" و ")})));
-    if(r.steal) after.append(el("div",{class:"effect k-key",text:`🔑 سرقة: ${fmt(r.steal.amt)} من ${nameOf(r.steal.target)} إلى ${nameOf(r.winner)}`}));
+    const sorted=r.bids.slice().sort((a,b)=>b[1]-a[1]);
+    for(const [id,v] of sorted) list.append(el("div",{class:"brow"+(fresh?"":" in")+(id===W?" win":"")}, el("span",{class:"n",text:id===me?"أنت":nameOf(id)}), el("span",{class:"v"+(v?"":" zero"),text:v?fmt(v):"لم يزايد"})));
+    res.append(list);
+    // 2) who takes it
+    const winline=el("div",{class:"winline"+(fresh?"":" in"),id:"winline"});
+    if(W) winline.append(W===me?"الحاوية لك":"الحاوية لـ "+wn, " بـ ", el("span",{class:"num",text:fmt(r.price)}));
+    else winline.append("لم يزايد أحد على هذه الحاوية");
+    res.append(winline);
+    s.append(res);
+    // 3) the container opens
+    s.append(el("div",{class:"yard"}, ctrEl({code:r.code,color:r.color}, !fresh, contentEls(r.kind,r.value))));
+    // 4) what it meant
+    const out=el("div",{class:"outcome"+(fresh?"":" in"),id:"outcome"});
+    const what = r.kind==="valuable"||r.kind==="normal" ? `داخلها ${A.KINDS[r.kind]} قيمتها ${fmt(r.value)}` : r.kind==="empty" ? "داخلها… لا شيء. فارغة." : r.kind==="contra" ? "داخلها بضاعة مهرّبة. الجمارك صادرت نصف الرصيد." : "داخلها مفتاح: يسرق 30% من تاجر يختاره.";
+    out.append(el("div",{class:"what",text:what}));
+    if(W){ const d=r.delta; out.append(el("div",{class:"net "+(d>=0?"up":"down"),text:(d>=0?"+":"−")+fmt(Math.abs(d))}), el("div",{class:"how",text:`${d>=0?"ربح":"خسارة"} ${W===me?"ـك":nameOf(W)} في هذه الصفقة`.replace(" ـك","ك")})); }
+    if(r.peekers.length) out.append(el("div",{class:"knew"}, "🤫 كان يعرف ما بداخلها: ", el("b",{text:r.peekers.map(id=>id===me?"أنت":nameOf(id)).join(" و ")})));
+    if(r.steal) out.append(el("div",{class:"effect k-key",text:`🔑 ${nameOf(r.winner)} سرق ${fmt(r.steal.amt)} من ${r.steal.target===me?"رصيدك":nameOf(r.steal.target)}`}));
     if(g.phase==="steal"){
-      if(r.winner===me){
+      if(W===me){
         const pk=el("div",{class:"pick"});
         for(const p of V.players) if(p.id!==me&&p.cash!=null) pk.append(el("button",{class:"btn small ghost",type:"button",onclick:()=>send({t:"steal",id:p.id})}, `${p.name} · `, el("span",{class:"num",text:fmt(p.cash)})));
-        after.append(el("div",{class:"knew",style:"margin-top:8px",text:"اختر من تسرق:"}), pk);
-      } else after.append(el("div",{class:"knew",style:"margin-top:8px",text:`🔑 ${nameOf(r.winner)} · اختيار الضحية…`}));
+        out.append(el("div",{class:"how",text:"اختر من تسرق منه 30%:"}), pk);
+      } else out.append(el("div",{class:"how",text:`🔑 ${nameOf(W)} يختار الآن من يسرق…`}));
     }
-    s.append(after);
+    s.append(out);
     if(fresh){
       revealDone=key;
       const rows=[...list.children];
-      rows.forEach((row,i)=>setTimeout(()=>{ row.classList.add("in"); sfx.tick(); },300+i*450));
-      const tOpen=300+rows.length*450+500;
-      setTimeout(()=>sfx.gavel(),tOpen-300);
-      setTimeout(()=>{ const c=$("ctr"); if(c){ c.classList.add("open"); sfx.creak(); } },tOpen);
-      setTimeout(()=>{ const a=$("after"); if(a) a.style.opacity="1"; (r.kind==="valuable"||r.kind==="normal")?sfx.good():(r.winner?sfx.bad():null); },tOpen+1500);
+      rows.forEach((row,i)=>setTimeout(()=>{ row.classList.add("in"); sfx.tick(); },300+i*500));
+      const tWin=300+rows.length*500+300;
+      setTimeout(()=>{ const w=$("winline"); if(w) w.classList.add("in"); sfx.gavel(); },tWin);
+      setTimeout(()=>{ const c=$("ctr"); if(c){ c.classList.add("open"); sfx.creak(); } },tWin+1000);
+      setTimeout(()=>{ const o=$("outcome"); if(o) o.classList.add("in"); (r.kind==="valuable"||r.kind==="normal")?sfx.good():(W?sfx.bad():null); },tWin+2600);
     }
   }
 
