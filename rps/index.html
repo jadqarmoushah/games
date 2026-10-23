@@ -1,0 +1,716 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>بطولة حجرة ورقة مقص</title>
+<meta name="description" content="بطولة حجرة ورقة مقص للفريق — افتح الرابط واكتب اسمك وادخل اللعب.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lalezar&family=Readex+Pro:wght@300;400;500;700&display=swap">
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<style>
+:root{
+  --bg:#ECEFF6; --surface:#FFFFFF; --sunk:#E2E6F1; --ink:#141A33; --muted:#5A6283; --line:#D3D8E7;
+  --accent:#2C47F5; --accent-ink:#FFFFFF; --gold:#F5B400; --win:#138A5B; --lose:#C93A52; --draw:#7A6A2A;
+  --display:"Lalezar","Readex Pro",system-ui,sans-serif;
+  --body:"Readex Pro",system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif;
+  --r:14px; color-scheme:light;
+}
+@media (prefers-color-scheme: dark){ :root{
+  --bg:#0D1124; --surface:#161B34; --sunk:#10152B; --ink:#EDEFFA; --muted:#9BA2C4; --line:#283058;
+  --accent:#7D8CFF; --accent-ink:#0D1124; --gold:#FFC94A; --win:#3DD597; --lose:#FF7A8E; --draw:#E3CF7A; color-scheme:dark } }
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.6;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+[hidden]{display:none!important}
+img{max-width:100%}
+.wrap{max-width:1120px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+button,input,select{font-family:inherit}
+button{cursor:pointer}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+
+header{padding-block:28px 18px}
+.top{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(34px,7vw,60px);line-height:1;margin:0;text-wrap:balance}
+h1 .hands{display:inline-flex;gap:.08em;margin-inline-start:.15em;font-size:.8em;vertical-align:.05em}
+h1 .hands span{display:inline-block;animation:bob 2.4s ease-in-out infinite}
+h1 .hands span:nth-child(2){animation-delay:.2s}
+h1 .hands span:nth-child(3){animation-delay:.4s}
+@keyframes bob{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-6px) rotate(-8deg)}}
+.sub{color:var(--muted);margin:8px 0 0;max-width:60ch}
+.status{display:flex;gap:8px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;background:var(--surface);border:1px solid var(--line);font-size:13px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--win);box-shadow:0 0 0 3px color-mix(in srgb,var(--win) 25%,transparent)}
+.dot.off{background:var(--lose);box-shadow:none}
+.chip.stage{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:500}
+
+main{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:20px;padding-block:6px 40px;align-items:start}
+@media (max-width:860px){main{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px;min-width:0}
+.panel h2{font-family:var(--display);font-weight:400;font-size:26px;line-height:1.1;margin:0 0 4px}
+.panel .hint{color:var(--muted);font-size:13px;margin:0 0 14px}
+.col{display:flex;flex-direction:column;gap:20px;min-width:0}
+
+.vs{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;margin:14px 0 18px}
+.fighter{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0;text-align:center}
+.fighter .av{width:52px;height:52px;font-size:22px;border:3px solid var(--line)}
+.fighter.me .av{border-color:var(--accent)}
+.fighter .nm{font-weight:500;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.score{font-family:var(--display);font-size:44px;line-height:1;font-variant-numeric:tabular-nums;display:flex;gap:10px;align-items:center;direction:ltr}
+.score small{font-family:var(--body);font-size:12px;color:var(--muted)}
+.pips{display:flex;gap:4px;justify-content:center}
+.pip{width:10px;height:10px;border-radius:50%;border:2px solid var(--line)}
+.pip.on{background:var(--gold);border-color:var(--gold)}
+.av{display:inline-grid;place-items:center;border-radius:50%;color:#fff;font-weight:700;flex:none;width:28px;height:28px;font-size:13px;line-height:1}
+
+.picks{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.pick{border:2px solid var(--line);background:var(--sunk);color:var(--ink);border-radius:16px;padding:14px 6px 10px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:14px;font-weight:500;transition:transform .12s,border-color .12s,background .12s}
+.pick .e{font-size:clamp(40px,9vw,54px);line-height:1.1}
+.pick:hover{transform:translateY(-3px);border-color:var(--accent)}
+.pick:active{transform:scale(.96)}
+.pick.sel{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,var(--surface))}
+.wait{margin-top:12px;text-align:center;color:var(--muted);font-size:14px}
+.wait b{color:var(--ink)}
+.typing{display:inline-flex;gap:3px;margin-inline-start:6px;vertical-align:middle}
+.typing i{width:5px;height:5px;border-radius:50%;background:var(--muted);animation:blink 1.2s infinite}
+.typing i:nth-child(2){animation-delay:.2s}.typing i:nth-child(3){animation-delay:.4s}
+@keyframes blink{0%,100%{opacity:.2}50%{opacity:1}}
+.reveal{display:flex;align-items:center;justify-content:center;gap:14px;padding:12px;border-radius:12px;background:var(--sunk);margin-bottom:14px;font-weight:500}
+.reveal .e{font-size:38px;line-height:1}
+.reveal .e.l{animation:slamL .5s cubic-bezier(.3,1.6,.5,1)}
+.reveal .e.r{animation:slamR .5s cubic-bezier(.3,1.6,.5,1)}
+@keyframes slamL{from{transform:translateX(30px) scale(.4);opacity:0}}
+@keyframes slamR{from{transform:translateX(-30px) scale(.4);opacity:0}}
+.res{min-width:96px;text-align:center}
+.res.win{color:var(--win)}.res.lose{color:var(--lose)}.res.draw{color:var(--draw)}
+
+.big{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;padding:18px 6px}
+.big .e{font-size:64px;line-height:1}
+.big h3{font-family:var(--display);font-weight:400;font-size:30px;margin:0;line-height:1.1}
+.big p{margin:0;color:var(--muted);max-width:44ch}
+
+.btn{border:0;border-radius:12px;padding:11px 20px;font-size:15px;font-weight:700;background:var(--accent);color:var(--accent-ink)}
+.btn:hover{filter:brightness(1.07)}
+.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line);font-weight:500}
+.btn.small{padding:6px 12px;font-size:13px;border-radius:9px}
+.btn.danger{background:var(--lose);color:#fff}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:center}
+.host .row{justify-content:flex-start}
+input[type=text]{font-size:16px;padding:11px 14px;border-radius:12px;border:1.5px solid var(--line);background:var(--sunk);color:var(--ink);width:min(260px,100%)}
+
+.roster{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.roster li{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;background:var(--sunk);min-width:0}
+.roster .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px}
+.roster .on{width:8px;height:8px;border-radius:50%;background:var(--line);flex:none}
+.roster .on.live{background:var(--win)}
+.roster .x{border:0;background:transparent;color:var(--muted);font-size:16px;line-height:1;padding:2px 4px;border-radius:6px}
+.roster .x:hover{color:var(--lose)}
+.empty{grid-column:1/-1;display:block!important;color:var(--muted);font-size:14px;padding:14px;border:1.5px dashed var(--line);border-radius:12px;text-align:center;background:transparent!important}
+
+.bracket-scroll{overflow-x:auto;margin-inline:-4px;padding:4px 4px 8px}
+.bracket{display:flex;gap:14px;min-width:min-content}
+.round{display:flex;flex-direction:column;justify-content:space-around;gap:10px;min-width:180px}
+.round h4{margin:0 0 2px;font-size:12px;letter-spacing:.04em;color:var(--muted);font-weight:500}
+.match{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface);font-size:13px}
+.match.live{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 25%,transparent)}
+.match.mine{outline:2px dashed var(--gold);outline-offset:2px}
+.slot{display:flex;align-items:center;gap:6px;padding:6px 8px;min-width:0}
+.slot+.slot{border-top:1px solid var(--line)}
+.slot .av{width:20px;height:20px;font-size:10px}
+.slot .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.slot .w{font-variant-numeric:tabular-nums;font-weight:700;min-width:14px;text-align:center}
+.slot .ok{font-size:11px;color:var(--win)}
+.slot.won{background:color-mix(in srgb,var(--win) 12%,var(--surface))}
+.slot.won .nm{font-weight:700}
+.slot.out{color:var(--muted)}
+.slot.out .nm{text-decoration:line-through}
+.slot.bye{color:var(--muted);font-style:italic}
+.ref{display:flex;gap:4px;padding:6px;border-top:1px solid var(--line);background:var(--sunk)}
+.ref button{flex:1;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:7px;font-size:11px;padding:4px 2px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ref button:hover{border-color:var(--accent)}
+
+.host{border-style:dashed}
+.host label{font-size:14px;color:var(--muted)}
+select{font-size:14px;padding:7px 10px;border-radius:9px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink)}
+.confirm{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px;border-radius:10px;background:color-mix(in srgb,var(--lose) 10%,var(--surface));font-size:14px}
+.share{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 12px;border-radius:12px;background:var(--sunk);margin-bottom:12px}
+.share code{flex:1;min-width:0;overflow-wrap:anywhere;font-size:13px;direction:ltr;text-align:left;user-select:all}
+.warn{font-size:13px;color:var(--lose);margin:10px 0 0}
+
+.reacts{display:flex;gap:6px;flex-wrap:wrap}
+.reacts button{font-size:22px;line-height:1;padding:8px 10px;border-radius:12px;border:1px solid var(--line);background:var(--sunk);transition:transform .1s}
+.reacts button:hover{transform:scale(1.12)}
+.reacts button:active{transform:scale(.9)}
+#floaters{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:50}
+.fl{position:absolute;bottom:-50px;font-size:34px;animation:rise 2.6s ease-out forwards}
+@keyframes rise{to{transform:translateY(-75vh) rotate(var(--rot));opacity:0}}
+.prac-out{display:flex;align-items:center;justify-content:center;gap:12px;min-height:58px;font-weight:500}
+.prac-out .e{font-size:34px}
+.tally{font-variant-numeric:tabular-nums;color:var(--muted);font-size:13px;text-align:center}
+.toast{position:fixed;bottom:calc(18px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:12px;font-size:14px;z-index:60;max-width:calc(100% - 32px);text-align:center}
+#confetti{position:fixed;inset:0;pointer-events:none;z-index:40}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header class="wrap">
+  <div class="top">
+    <div>
+      <h1>بطولة حجرة ورقة مقص<span class="hands" aria-hidden="true"><span>✊</span><span>✋</span><span>✌️</span></span></h1>
+      <p class="sub">اكتب اسمك وادخل القرعة، وانتظر صافرة البداية، ثم اختر رميتك. الفائز يتأهل للدور التالي حتى يبقى بطل واحد.</p>
+    </div>
+    <div class="status">
+      <span class="chip stage" id="stageChip">جارٍ الاتصال…</span>
+      <span class="chip" id="onlineChip" hidden><span class="dot" id="netDot"></span><span id="onlineN">0</span> متصل الآن</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="col">
+    <section class="panel" id="arena" aria-live="polite"></section>
+
+    <section class="panel">
+      <h2>تفاعل مع الجمهور</h2>
+      <p class="hint">كل من فتح الصفحة الآن يشاهد ردة فعلك وهي تطير.</p>
+      <div class="reacts" id="reacts">
+        <button type="button" data-e="👏" aria-label="تصفيق">👏</button>
+        <button type="button" data-e="😂" aria-label="ضحك">😂</button>
+        <button type="button" data-e="🔥" aria-label="نار">🔥</button>
+        <button type="button" data-e="😱" aria-label="صدمة">😱</button>
+        <button type="button" data-e="🤝" aria-label="روح رياضية">🤝</button>
+        <button type="button" data-e="🏆" aria-label="كأس">🏆</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>تدرّب ضد الكمبيوتر</h2>
+      <p class="hint">للتسخين قبل البطولة أو بعد الخروج منها. هذه الجولات لا تُحسب.</p>
+      <div class="picks" id="pracPicks"></div>
+      <div class="prac-out" id="pracOut"><span style="color:var(--muted)">اختر رميتك</span></div>
+      <div class="tally" id="pracTally">فوز 0 · تعادل 0 · خسارة 0</div>
+    </section>
+  </div>
+
+  <div class="col">
+    <section class="panel host" id="hostPanel" hidden></section>
+
+    <section class="panel">
+      <h2>اللاعبون</h2>
+      <p class="hint" id="rosterHint">من ينضم قبل البداية يدخل القرعة.</p>
+      <ul class="roster" id="roster"></ul>
+    </section>
+
+    <section class="panel" id="bracketPanel" hidden>
+      <h2>شجرة البطولة</h2>
+      <p class="hint">المباريات المضيئة تُلعب الآن. علامة ✓ تعني أن اللاعب اختار رميته.</p>
+      <div class="bracket-scroll"><div class="bracket" id="bracket"></div></div>
+    </section>
+  </div>
+</main>
+
+<div id="floaters" aria-hidden="true"></div>
+<canvas id="confetti" aria-hidden="true"></canvas>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(() => {
+  /* ================= constants & helpers ================= */
+  const C = { rock:{e:"✊",n:"حجرة"}, paper:{e:"✋",n:"ورقة"}, scissors:{e:"✌️",n:"مقص"} };
+  const KEYS = ["rock","paper","scissors"];
+  const BEATS = {rock:"scissors", scissors:"paper", paper:"rock"};
+  const REACTS = ["👏","😂","🔥","😱","🤝","🏆"];
+  const PREFIX = "rps-arena-v1-";
+  const $ = id => document.getElementById(id);
+  const store = {
+    get(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } },
+    set(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+  };
+  function el(tag, attrs={}, ...kids){
+    const n=document.createElement(tag);
+    for(const [k,v] of Object.entries(attrs)){
+      if(k==="class") n.className=v; else if(k==="text") n.textContent=v;
+      else if(k.startsWith("on")) n.addEventListener(k.slice(2),v);
+      else if(v!==false && v!=null) n.setAttribute(k, v===true?"":v);
+    }
+    for(const c of kids){ if(c==null) continue; n.append(c.nodeType?c:document.createTextNode(c)); }
+    return n;
+  }
+  function toast(msg){ const t=$("toast"); t.textContent=msg; t.hidden=false; clearTimeout(toast._t); toast._t=setTimeout(()=>t.hidden=true,3400); }
+  function rid(n){ const a="abcdefghjkmnpqrstuvwxyz23456789"; let s=""; const r=crypto.getRandomValues(new Uint8Array(n)); for(const x of r) s+=a[x%a.length]; return s; }
+  function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+  const clean = s => String(s||"").replace(/[\u0000-\u001f​-‏‪-‮]/g,"").trim().slice(0,24);
+  function hue(id){ let h=0; for(const ch of String(id)) h=(h*31+ch.charCodeAt(0))>>>0; return h%360; }
+  function avatar(id, name, cls=""){
+    const s=el("span",{class:"av "+cls, "aria-hidden":"true", text:(name||"؟").trim().charAt(0)||"؟"});
+    s.style.background=`hsl(${hue(id)} 62% 46%)`;
+    return s;
+  }
+  const target = g => Math.ceil((g.bestOf||3)/2);
+  const totalRounds = g => Math.log2(g.rounds[0].length*2);
+  const roundName = (i,total) => { const left=total-i; return left===1?"النهائي":left===2?"نصف النهائي":left===3?"ربع النهائي":"الدور "+(i+1); };
+  const keyFor = (g,m) => `${g.seq}.${g.current}.${m.id}.${m.throws.length}`;
+  function judge(x,y){ return x===y ? "d" : (BEATS[x]===y ? "a" : "b"); }
+
+  /* ================= identity & role ================= */
+  const params = new URLSearchParams(location.search);
+  let code = (params.get("r")||"").toLowerCase().replace(/[^a-z0-9]/g,"").slice(0,12);
+  let me = store.get(PREFIX+"me");
+  if(!me){ me = "p" + rid(10); store.set(PREFIX+"me", me); }
+  let myName = store.get(PREFIX+"name") || "";
+  const hosted = store.get(PREFIX+"hosted") || {};          // code -> true for rooms I created
+  let isHost = !!(code && hosted[code]);
+
+  /* ================= shared view (rendered by everyone) ================= */
+  let view = null;       // {players:[{id,name,online}], game, picked:[ids], online:n}
+  let myPick = null;     // {key, choice}
+  let net = "connecting"; // connecting | open | lost | missing | dup
+  let seenThrows = {};
+  let confettiFor = null;
+  let confirmReset = false;
+
+  /* ================= HOST: authoritative state ================= */
+  let H = null;          // {players:{id:{name,joinedAt}}, game, picks:{id:{key,choice}}}
+  const conns = new Map(); // playerId -> DataConnection
+
+  function hostLoad(){
+    H = store.get(PREFIX+"room-"+code) || {players:{}, game:{status:"lobby", seq:1, bestOf:3, rounds:[], current:0, champion:null}, picks:{}};
+    H.picks = H.picks || {};
+  }
+  function hostSave(){ store.set(PREFIX+"room-"+code, H); }
+  function hostOnline(){ const s=new Set([me]); for(const [id,c] of conns) if(c.open) s.add(id); return s; }
+  function publicState(){
+    const on = hostOnline();
+    const g = H.game;
+    const picked = [];
+    if(g.status==="running"){
+      for(const m of g.rounds[g.current]){
+        if(m.winner||!m.a||!m.b) continue;
+        const k=keyFor(g,m);
+        for(const id of [m.a,m.b]) if(H.picks[id] && H.picks[id].key===k) picked.push(id);
+      }
+    }
+    const names = {};
+    for(const [id,p] of Object.entries(H.players)) names[id]=p.name;
+    return {
+      players: Object.entries(H.players).sort((a,b)=>a[1].joinedAt-b[1].joinedAt).map(([id,p])=>({id,name:p.name,online:on.has(id)})),
+      names, game:g, picked, online:on.size
+    };
+  }
+  let bcastT=null;
+  function hostCommit(){
+    hostSave();
+    clearTimeout(bcastT);
+    bcastT = setTimeout(()=>{
+      const st = publicState();
+      for(const [id,c] of conns) if(c.open){ try{ c.send({t:"state", st, pick: H.picks[id]||null}); }catch(e){} }
+      applyState(st, H.picks[me]||null);
+    }, 30);
+  }
+  function makeRound(pairs, r){
+    return pairs.map((p,i)=>{
+      const m={id:`r${r}m${i}`, a:p[0]||null, b:p[1]||null, wa:0, wb:0, throws:[], winner:null};
+      if(m.a && !m.b) m.winner=m.a;
+      if(m.b && !m.a) m.winner=m.b;
+      return m;
+    });
+  }
+  function advance(g){
+    for(;;){
+      const r=g.rounds[g.current];
+      if(!r.every(m=>m.winner)) return g;
+      const w=r.map(m=>m.winner);
+      if(w.length===1){ g.status="done"; g.champion=w[0]; return g; }
+      const pairs=[]; for(let i=0;i<w.length;i+=2) pairs.push([w[i],w[i+1]]);
+      g.current++; g.rounds.push(makeRound(pairs,g.current));
+    }
+  }
+  function hostStart(bestOf){
+    const ids = shuffle(Object.keys(H.players));
+    if(ids.length<2){ toast("نحتاج لاعبَين على الأقل."); return; }
+    let size=2; while(size<ids.length) size*=2;
+    let byes=size-ids.length; const pairs=[];
+    for(let i=0;i<size/2;i++){ if(byes>0){pairs.push([ids.shift(),null]);byes--;} else pairs.push([ids.shift(),ids.shift()]); }
+    H.game = advance({status:"running", seq:(H.game.seq||0)+1, bestOf, current:0, rounds:[makeRound(shuffle(pairs),0)], champion:null});
+    H.picks = {};
+    hostCommit();
+  }
+  function hostReset(){
+    H.game = {status:"lobby", seq:(H.game.seq||0)+1, bestOf:H.game.bestOf||3, rounds:[], current:0, champion:null};
+    H.picks = {}; hostCommit();
+  }
+  function hostAward(matchId, side){
+    const g=H.game; if(g.status!=="running") return;
+    const m=g.rounds[g.current].find(x=>x.id===matchId); if(!m||m.winner) return;
+    m.winner = side==="a"?m.a:m.b; m.forfeit=true; advance(g); hostCommit();
+  }
+  function hostReferee(){
+    const g=H.game; if(g.status!=="running") return false;
+    const t=target(g); let changed=false;
+    for(const m of g.rounds[g.current]){
+      if(m.winner||!m.a||!m.b) continue;
+      const k=keyFor(g,m), pa=H.picks[m.a], pb=H.picks[m.b];
+      if(pa&&pb&&pa.key===k&&pb.key===k){
+        const r=judge(pa.choice,pb.choice);
+        m.throws.push({a:pa.choice,b:pb.choice,r});
+        if(r==="a") m.wa++; if(r==="b") m.wb++;
+        if(m.wa>=t) m.winner=m.a; else if(m.wb>=t) m.winner=m.b;
+        changed=true;
+      }
+    }
+    if(changed) advance(g);
+    return changed;
+  }
+  // every message — from a remote player or from the host's own UI — lands here
+  function hostHandle(from, msg){
+    if(!msg || typeof msg!=="object") return;
+    const g=H.game;
+    switch(msg.t){
+      case "hello": {
+        const n=clean(msg.name);
+        if(H.players[from] && n) H.players[from].name=n;
+        hostCommit(); break;
+      }
+      case "join": {
+        const n=clean(msg.name); if(!n) return;
+        if(g.status!=="lobby" && !H.players[from]){ sendTo(from,{t:"toast",m:"البطولة بدأت. ستدخل في البطولة القادمة."}); return; }
+        H.players[from] = H.players[from] ? {...H.players[from], name:n} : {name:n, joinedAt:Date.now()};
+        hostCommit(); break;
+      }
+      case "leave": {
+        if(g.status!=="lobby") return;
+        delete H.players[from]; hostCommit(); break;
+      }
+      case "pick": {
+        if(g.status!=="running" || !C[msg.choice]) return;
+        const m=g.rounds[g.current].find(x=>(x.a===from||x.b===from)&&!x.winner&&x.a&&x.b);
+        if(!m || msg.key!==keyFor(g,m)) return;
+        H.picks[from]={key:msg.key, choice:msg.choice};
+        hostReferee(); hostCommit(); break;
+      }
+      case "react": {
+        if(!REACTS.includes(msg.e)) return;
+        const now=Date.now(); const last=reactGate.get(from)||0; if(now-last<250) return; reactGate.set(from,now);
+        for(const [,c] of conns) if(c.open){ try{ c.send({t:"react",e:msg.e}); }catch(e){} }
+        floatEmoji(msg.e); break;
+      }
+    }
+  }
+  const reactGate=new Map();
+  function sendTo(id,msg){ const c=conns.get(id); if(c&&c.open){ try{ c.send(msg); }catch(e){} } }
+
+  /* ================= networking ================= */
+  let peer=null, hostConn=null, retryT=null;
+  const peerId = () => PREFIX + code;
+
+  function startHost(){
+    hostLoad();
+    net="connecting"; render();
+    peer = new Peer(peerId(), {debug:0});
+    peer.on("open", ()=>{ net="open"; hostCommit(); });
+    peer.on("connection", c=>{
+      c.on("open", ()=>{
+        const pid = String(c.metadata?.id||"").slice(0,20);
+        if(!/^p[a-z0-9]{6,19}$/.test(pid)){ c.close(); return; }
+        const old=conns.get(pid); if(old && old!==c){ try{old.close();}catch(e){} }
+        conns.set(pid,c);
+        c.on("data", d=>hostHandle(pid,d));
+        c.on("close", ()=>{ if(conns.get(pid)===c){ conns.delete(pid); hostCommit(); } });
+        hostHandle(pid,{t:"hello", name:c.metadata?.name});
+      });
+    });
+    peer.on("disconnected", ()=>{ net="lost"; render(); setTimeout(()=>{ try{ peer.reconnect(); }catch(e){} }, 1500); });
+    peer.on("error", err=>{
+      if(err.type==="unavailable-id"){ net="dup"; render(); }
+      else if(["network","server-error","socket-error","socket-closed"].includes(err.type)){ net="lost"; render(); }
+    });
+    // host acts on its own state locally
+    send = msg => hostHandle(me, msg);
+  }
+
+  function startClient(){
+    net="connecting"; render();
+    peer = new Peer(undefined, {debug:0});
+    peer.on("open", connectToHost);
+    peer.on("disconnected", ()=>{ setTimeout(()=>{ try{ peer.reconnect(); }catch(e){} }, 1500); });
+    peer.on("error", err=>{
+      if(err.type==="peer-unavailable"){ net="missing"; render(); scheduleRetry(5000); }
+      else if(["network","server-error","socket-error","socket-closed"].includes(err.type)){ net="lost"; render(); scheduleRetry(4000); }
+    });
+    send = msg => { if(hostConn&&hostConn.open){ try{ hostConn.send(msg); return true; }catch(e){} } toast("الاتصال مقطوع. نعيد المحاولة…"); return false; };
+  }
+  function scheduleRetry(ms){ clearTimeout(retryT); retryT=setTimeout(connectToHost, ms); }
+  function connectToHost(){
+    if(!peer || peer.destroyed) return;
+    if(peer.disconnected){ try{ peer.reconnect(); }catch(e){} scheduleRetry(2000); return; }
+    const c = peer.connect(peerId(), {reliable:true, metadata:{id:me, name:myName}});
+    hostConn = c;
+    const timeout=setTimeout(()=>{ if(!c.open){ try{c.close();}catch(e){} if(net!=="missing"){net="lost";render();} scheduleRetry(3000); } }, 9000);
+    c.on("open", ()=>{ clearTimeout(timeout); net="open"; render(); });
+    c.on("data", d=>{
+      if(!d||typeof d!=="object") return;
+      if(d.t==="state") applyState(d.st, d.pick);
+      else if(d.t==="react") floatEmoji(d.e);
+      else if(d.t==="toast" && typeof d.m==="string") toast(d.m);
+    });
+    c.on("close", ()=>{ clearTimeout(timeout); if(hostConn===c){ net="lost"; render(); scheduleRetry(2500); } });
+    c.on("error", ()=>{});
+  }
+  let send = () => false;
+
+  function applyState(st, pick){
+    const prev=view?.game;
+    view=st;
+    if(pick) myPick=pick; else if(!pickInFlight) myPick=null;
+    const g=st.game;
+    if(g && g.status==="done" && confettiFor!==g.seq){ confettiFor=g.seq; if(prev && prev.status==="running") confetti(); }
+    render();
+  }
+
+  /* ================= player actions ================= */
+  let pickInFlight=false;
+  function doJoin(name){
+    name=clean(name); if(!name){ toast("اكتب اسمك أولًا."); return; }
+    myName=name; store.set(PREFIX+"name", name);
+    send({t:"join", name});
+  }
+  function doPick(choice){
+    const g=view?.game, m=myMatch(g); if(!m) return;
+    const key=keyFor(g,m);
+    myPick={key,choice}; pickInFlight=true; render();
+    send({t:"pick", key, choice});
+    setTimeout(()=>{pickInFlight=false;},1500);
+  }
+
+  /* ================= derived ================= */
+  const nameOf = id => id==null ? "—" : (view?.names?.[id] || (id===me?(myName||"أنت"):"لاعب"));
+  function myMatch(g){ if(!g||g.status!=="running") return null; return (g.rounds[g.current]||[]).find(m=>m.a===me||m.b===me)||null; }
+  function inTournament(g){ return !!(g&&g.rounds&&g.rounds[0]&&g.rounds[0].some(m=>m.a===me||m.b===me)); }
+  function eliminatedIn(g){ if(!g) return -1; for(let i=0;i<g.rounds.length;i++){ const m=g.rounds[i].find(x=>x.a===me||x.b===me); if(m&&m.winner&&m.winner!==me) return i; } return -1; }
+  const joined = () => !!view?.players?.some(p=>p.id===me);
+
+  /* ================= render ================= */
+  function render(){ renderStage(); renderArena(); renderHost(); renderRoster(); renderBracket(); }
+
+  function renderStage(){
+    const c=$("stageChip"), oc=$("onlineChip");
+    if(!code){ c.textContent="أنشئ بطولة جديدة"; oc.hidden=true; return; }
+    if(!view){ c.textContent = net==="missing"?"بانتظار المنظّم":net==="lost"?"الاتصال مقطوع":net==="dup"?"البطولة مفتوحة في نافذة أخرى":"جارٍ الاتصال…"; oc.hidden=true; return; }
+    const g=view.game;
+    c.textContent = g.status==="running" ? roundName(g.current,totalRounds(g))+" · يُلعب الآن" : g.status==="done" ? "انتهت البطولة" : "صالة الانتظار · "+view.players.length+" لاعب";
+    oc.hidden=false; $("onlineN").textContent=String(view.online);
+    $("netDot").classList.toggle("off", net!=="open");
+  }
+
+  function big(e,h,p,...extra){ return el("div",{class:"big"}, el("div",{class:"e",text:e}), el("h3",{text:h}), p?el("p",{text:p}):null, ...extra); }
+
+  function renderArena(){
+    const a=$("arena"); a.replaceChildren();
+    if(!code){
+      a.append(big("🏟️","أنشئ بطولة لفريقك","تحصل على رابط تنشره في سلاك. من يفتحه يكتب اسمه ويدخل القرعة مباشرة. أبقِ هذه الصفحة مفتوحة عندك طوال البطولة.",
+        el("button",{class:"btn",type:"button",onclick:createRoom,text:"أنشئ بطولة"})));
+      return;
+    }
+    if(typeof Peer==="undefined"){ a.append(big("🔌","تعذّر تحميل محرك اللعب","تأكد من اتصالك بالإنترنت ثم حدّث الصفحة.")); return; }
+    if(net==="dup"){ a.append(big("🪟","البطولة مفتوحة في نافذة أخرى","أنت المنظّم، وصفحة التحكيم مفتوحة في تبويب آخر. استخدم ذلك التبويب، أو أغلقه وحدّث هذه الصفحة.")); return; }
+    if(!view){
+      if(net==="missing") a.append(big("🕰️","المنظّم ليس متصلًا الآن","البطولة تعمل من جهاز المنظّم. سندخلك تلقائيًا فور أن يفتح صفحته."));
+      else if(net==="lost") a.append(big("📡","نعيد الاتصال…","انقطع الاتصال للحظة. نحاول تلقائيًا."));
+      else a.append(big("⏳","ندخلك الحلبة","لحظات ونتصل بالبطولة."));
+      return;
+    }
+    const g=view.game;
+
+    if(g.status==="lobby"){
+      if(joined()){
+        a.append(big("✊",`أنت في القرعة يا ${nameOf(me)}`,
+          `بانتظار المنظّم ليطلق البطولة. معك ${view.players.length-1} ${view.players.length-1===1?"منافس":"منافسين"} حتى الآن.`,
+          el("div",{class:"row"}, el("button",{class:"btn ghost small",type:"button",onclick:()=>send({t:"leave"}),text:"انسحب"}))));
+      }else{
+        const inp=el("input",{type:"text",id:"nameInput",maxlength:"24",placeholder:"اسمك",autocomplete:"nickname",value:myName});
+        const go=()=>doJoin(inp.value);
+        inp.addEventListener("keydown",e=>{ if(e.key==="Enter") go(); });
+        a.append(big("🥊","جاهز للتحدي؟","اكتب اسمك كما يعرفه زملاؤك، وادخل القرعة قبل أن تبدأ البطولة.",
+          el("div",{class:"row"}, inp, el("button",{class:"btn",type:"button",onclick:go,text:"انضم للبطولة"}))));
+        setTimeout(()=>{ if(document.activeElement===document.body) inp.focus(); },0);
+      }
+      return;
+    }
+    if(g.status==="done"){
+      const ch=g.champion;
+      const card=big("🏆", ch===me?"أنت البطل!":`${nameOf(ch)} بطل البطولة`, ch===me?"ولا رمية ضائعة. اطلب من الزملاء التصفيق.":"مبروك للبطل. انتظروا المنظّم لبطولة جديدة.");
+      const av=avatar(ch,nameOf(ch)); av.style.cssText+=";width:72px;height:72px;font-size:30px;border:4px solid var(--gold)";
+      card.prepend(av); a.append(card); return;
+    }
+    // running
+    const m=myMatch(g);
+    if(!inTournament(g)){ a.append(big("🍿","البطولة بدأت","تابع الشجرة وشجّع زملاءك. ستنضم في البطولة القادمة.")); return; }
+    const out=eliminatedIn(g);
+    if(out>=0){
+      const lm=g.rounds[out].find(x=>x.a===me||x.b===me), opp=lm.a===me?lm.b:lm.a;
+      a.append(big("🫠","خرجت من البطولة",`أقصاك ${nameOf(opp)} في ${roundName(out,totalRounds(g))}. تدرّب في الأسفل، وشجّع من بقي.`)); return;
+    }
+    if(!m){ a.append(big("⏳","بانتظار الدور التالي","")); return; }
+    if(m.winner===me){
+      const bye=!m.a||!m.b;
+      a.append(big(bye?"🎟️":"🎉", bye?"تأهلت مباشرة":"فزت بالمباراة!", bye?"القرعة أعطتك بطاقة عبور لهذا الدور. انتظر بقية المباريات.":"انتظر انتهاء بقية مباريات هذا الدور لتعرف خصمك القادم.")); return;
+    }
+    const iA=m.a===me, opp=iA?m.b:m.a, myW=iA?m.wa:m.wb, opW=iA?m.wb:m.wa, t=target(g);
+    a.append(el("h2",{text:roundName(g.current,totalRounds(g))}));
+    a.append(el("p",{class:"hint",text:`أول من يفوز بـ ${t} ${t===1?"رمية":"رميات"} يتأهل. التعادل لا يُحسب.`}));
+    const pips=n=>{ const d=el("div",{class:"pips"}); for(let i=0;i<t;i++) d.append(el("span",{class:"pip"+(i<n?" on":"")})); return d; };
+    a.append(el("div",{class:"vs"},
+      el("div",{class:"fighter me"}, avatar(me,nameOf(me)), el("span",{class:"nm",text:"أنت"}), pips(myW)),
+      el("div",{class:"score"}, String(opW), el("small",{text:"—"}), String(myW)),
+      el("div",{class:"fighter"}, avatar(opp,nameOf(opp)), el("span",{class:"nm",text:nameOf(opp)}), pips(opW))));
+    const n=m.throws.length;
+    if(n>0){
+      const th=m.throws[n-1], mine=iA?th.a:th.b, theirs=iA?th.b:th.a;
+      const res=th.r==="d"?"draw":((th.r==="a")===iA?"win":"lose");
+      const fresh=(seenThrows[m.id]||0)<n; seenThrows[m.id]=n;
+      a.append(el("div",{class:"reveal"},
+        el("span",{class:"e"+(fresh?" l":""),text:C[mine].e,title:C[mine].n}),
+        el("span",{class:"res "+res,text:res==="draw"?"تعادل":res==="win"?"ربحت الرمية":"خسرت الرمية"}),
+        el("span",{class:"e"+(fresh?" r":""),text:C[theirs].e,title:C[theirs].n})));
+    }
+    const k=keyFor(g,m), picked=myPick&&myPick.key===k?myPick.choice:null;
+    const oppPicked=(view.picked||[]).includes(opp);
+    const grid=el("div",{class:"picks"});
+    for(const key of KEYS) grid.append(el("button",{type:"button",class:"pick"+(picked===key?" sel":""),"aria-pressed":picked===key?"true":"false",onclick:()=>doPick(key)},
+      el("span",{class:"e",text:C[key].e}), el("span",{text:C[key].n})));
+    a.append(grid);
+    const w=el("div",{class:"wait"});
+    if(picked){ w.append("اخترت ", el("b",{text:C[picked].n}), ". بانتظار ", nameOf(opp), el("span",{class:"typing"},el("i"),el("i"),el("i")), el("br"), "تقدر تغيّر رأيك قبل أن يختار."); }
+    else if(oppPicked) w.append(el("b",{text:`${nameOf(opp)} اختار رميته!`}), " دورك الآن.");
+    else w.append(`الرمية رقم ${n+1}. اختر قبل أن يسبقك ${nameOf(opp)}!`);
+    a.append(w);
+  }
+
+  function shareUrl(){ const u=new URL(location.href); u.search="?r="+code; u.hash=""; return u.toString(); }
+  function renderHost(){
+    const h=$("hostPanel");
+    if(!isHost || !view){ h.hidden=true; return; }
+    h.hidden=false; h.replaceChildren();
+    const g=view.game;
+    h.append(el("h2",{text:"لوحة المنظّم"}));
+    h.append(el("p",{class:"hint",text:"تظهر لك وحدك. انشر الرابط في سلاك، ومن يفتحه يدخل مباشرة."}));
+    const url=shareUrl();
+    const copyBtn=el("button",{class:"btn small",type:"button",text:"انسخ الرابط",onclick:async()=>{
+      try{ await navigator.clipboard.writeText(url); toast("نُسخ الرابط. الصقه في قناة سلاك."); }
+      catch(e){ const r=document.createRange(); r.selectNodeContents(codeEl); const s=getSelection(); s.removeAllRanges(); s.addRange(r); toast("حدّدنا الرابط. انسخه يدويًا."); }
+    }});
+    const codeEl=el("code",{text:url});
+    h.append(el("div",{class:"share"}, codeEl, copyBtn));
+    if(g.status!=="running"){
+      const sel=el("select",{id:"bestOf"}, el("option",{value:"1",text:"رمية واحدة حاسمة"}), el("option",{value:"3",text:"أفضل من 3"}), el("option",{value:"5",text:"أفضل من 5"}));
+      sel.value=String(g.bestOf||3);
+      h.append(el("div",{class:"row"}, el("label",{for:"bestOf",text:"نظام المباراة"}), sel,
+        el("button",{class:"btn",type:"button",disabled:view.players.length<2,onclick:()=>hostStart(parseInt(sel.value,10)),text:g.status==="done"?"بطولة جديدة بنفس اللاعبين":"أطلق البطولة"})));
+    }
+    if(g.status!=="lobby"){
+      if(confirmReset) h.append(el("div",{class:"confirm",style:"margin-top:12px"}, "نرجع لصالة الانتظار ونمسح الشجرة؟ يبقى اللاعبون مسجّلين.",
+        el("button",{class:"btn danger small",type:"button",onclick:()=>{confirmReset=false;hostReset();},text:"نعم، ارجع"}),
+        el("button",{class:"btn ghost small",type:"button",onclick:()=>{confirmReset=false;renderHost();},text:"إلغاء"})));
+      else h.append(el("div",{class:"row",style:"margin-top:12px"}, el("button",{class:"btn ghost small",type:"button",onclick:()=>{confirmReset=true;renderHost();},text:"العودة لصالة الانتظار"})));
+    }
+    h.append(el("p",{class:"warn",text:"لا تغلق هذا التبويب: جهازك هو حَكَم البطولة. إن أغلقته تتوقف المباريات وتعود من حيث توقفت عند فتحه."}));
+  }
+
+  function renderRoster(){
+    const ul=$("roster"); ul.replaceChildren();
+    const g=view?.game;
+    $("rosterHint").textContent = !g||g.status==="lobby" ? "من ينضم قبل البداية يدخل القرعة." : "النقطة الخضراء تعني أنه متصل الآن.";
+    if(!view){ ul.append(el("li",{class:"empty",text:code?"جارٍ التحميل…":"أنشئ بطولة لتظهر القائمة هنا."})); return; }
+    if(!view.players.length){ ul.append(el("li",{class:"empty",text:"لا أحد في القرعة بعد. كن أول من ينضم."})); return; }
+    for(const p of view.players){
+      const li=el("li",{}, avatar(p.id,p.name), el("span",{class:"nm",text:p.id===me?p.name+" (أنت)":p.name}), el("span",{class:"on"+(p.online?" live":""),title:p.online?"متصل":"غير متصل"}));
+      if(isHost && g.status==="lobby" && p.id!==me) li.append(el("button",{class:"x",type:"button","aria-label":"إزالة "+p.name,text:"×",onclick:()=>{ delete H.players[p.id]; hostCommit(); }}));
+      ul.append(li);
+    }
+  }
+
+  function renderBracket(){
+    const p=$("bracketPanel"), b=$("bracket"), g=view?.game;
+    if(!g||!g.rounds||!g.rounds.length){ p.hidden=true; return; }
+    p.hidden=false; b.replaceChildren();
+    const total=totalRounds(g), picked=new Set(view.picked||[]);
+    for(let ri=0;ri<total;ri++){
+      const col=el("div",{class:"round"}, el("h4",{text:roundName(ri,total)}));
+      const r=g.rounds[ri], count=g.rounds[0].length/Math.pow(2,ri);
+      for(let mi=0;mi<count;mi++){
+        const m=r?r[mi]:null;
+        const live=m&&g.status==="running"&&ri===g.current&&!m.winner&&m.a&&m.b;
+        const box=el("div",{class:"match"+(live?" live":"")+(live&&(m.a===me||m.b===me)?" mine":"")});
+        const slot=(id,w)=>{
+          if(!m) return el("div",{class:"slot bye"}, el("span",{class:"nm",text:"بانتظار الفائز"}));
+          if(!id) return el("div",{class:"slot bye"}, el("span",{class:"nm",text:"عبور مباشر"}));
+          const won=m.winner===id, out=m.winner&&m.winner!==id;
+          return el("div",{class:"slot"+(won?" won":"")+(out?" out":"")}, avatar(id,nameOf(id)), el("span",{class:"nm",text:nameOf(id)}),
+            live&&picked.has(id)?el("span",{class:"ok",text:"✓",title:"اختار رميته"}):null,
+            el("span",{class:"w",text:(m.a&&m.b)?String(w):""}));
+        };
+        box.append(slot(m?.a,m?.wa), slot(m?.b,m?.wb));
+        if(isHost&&live) box.append(el("div",{class:"ref"},
+          el("button",{type:"button",title:"تأهيل "+nameOf(m.a),onclick:()=>hostAward(m.id,"a"),text:"تأهيل "+nameOf(m.a)}),
+          el("button",{type:"button",title:"تأهيل "+nameOf(m.b),onclick:()=>hostAward(m.id,"b"),text:"تأهيل "+nameOf(m.b)})));
+        col.append(box);
+      }
+      b.append(col);
+    }
+  }
+
+  /* ================= room creation ================= */
+  function createRoom(){
+    code = rid(6);
+    hosted[code]=true; store.set(PREFIX+"hosted", hosted);
+    isHost = true;
+    history.replaceState(null,"","?r="+code);
+    startHost();
+  }
+
+  /* ================= reactions & confetti ================= */
+  function floatEmoji(e){
+    if(!REACTS.includes(e)) return;
+    const f=el("span",{class:"fl",text:e});
+    f.style.left=(8+Math.random()*84)+"%"; f.style.setProperty("--rot",(Math.random()*60-30)+"deg");
+    $("floaters").append(f); setTimeout(()=>f.remove(),2700);
+  }
+  $("reacts").addEventListener("click",ev=>{
+    const b=ev.target.closest("button[data-e]"); if(!b) return;
+    if(!view){ floatEmoji(b.dataset.e); return; }
+    if(isHost) hostHandle(me,{t:"react",e:b.dataset.e});
+    else if(!send({t:"react",e:b.dataset.e})) floatEmoji(b.dataset.e);
+  });
+  function confetti(){
+    if(matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const cv=$("confetti"), ctx=cv.getContext("2d"); cv.width=innerWidth; cv.height=innerHeight;
+    const cs=getComputedStyle(document.documentElement);
+    const cols=["--gold","--accent","--win","--lose"].map(v=>cs.getPropertyValue(v).trim());
+    const ps=Array.from({length:140},()=>({x:Math.random()*cv.width,y:-20-Math.random()*cv.height*.5,vx:Math.random()*2-1,vy:2+Math.random()*3,s:5+Math.random()*6,r:Math.random()*6,c:cols[Math.floor(Math.random()*cols.length)]}));
+    let t=0;(function step(){ ctx.clearRect(0,0,cv.width,cv.height);
+      for(const p of ps){p.x+=p.vx;p.y+=p.vy;p.r+=.1;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.r);ctx.fillStyle=p.c;ctx.fillRect(-p.s/2,-p.s/4,p.s,p.s/2);ctx.restore();}
+      if(++t<240) requestAnimationFrame(step); else ctx.clearRect(0,0,cv.width,cv.height); })();
+  }
+
+  /* ================= practice ================= */
+  const tally={w:0,d:0,l:0};
+  for(const key of KEYS){
+    $("pracPicks").append(el("button",{type:"button",class:"pick",onclick:()=>{
+      const bot=KEYS[Math.floor(Math.random()*3)], r=judge(key,bot);
+      if(r==="a") tally.w++; else if(r==="b") tally.l++; else tally.d++;
+      const res=r==="d"?"draw":r==="a"?"win":"lose";
+      $("pracOut").replaceChildren(el("span",{class:"e",text:C[key].e}), el("span",{class:"res "+res,text:res==="draw"?"تعادل":res==="win"?"فزت":"خسرت"}), el("span",{class:"e",text:C[bot].e,title:"الكمبيوتر"}));
+      $("pracTally").textContent=`فوز ${tally.w} · تعادل ${tally.d} · خسارة ${tally.l}`;
+    }}, el("span",{class:"e",text:C[key].e}), el("span",{text:C[key].n})));
+  }
+
+  /* ================= boot ================= */
+  render();
+  if(code && typeof Peer!=="undefined"){ isHost ? startHost() : startClient(); }
+  else if(code) render();
+})();
+</script>
+</body>
+</html>
