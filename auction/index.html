@@ -592,7 +592,7 @@ main{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:16px;
         el("div",{class:"legend"},
           el("span",{class:"k-valuable",text:"ثمينة"}), el("span",{class:"k-normal",text:"عادية"}), el("span",{class:"k-empty",text:"فارغة"}),
           el("span",{class:"k-contra",text:"مهرّبة · تخسر النصف"}), el("span",{class:"k-key",text:"مفتاح · تسرق 30%"})),
-        isHost ? el("button",{class:"btn",type:"button",disabled:V.players.length<2,onclick:start,text:"ابدأ المزاد"}) : el("p",{text:"بانتظار صاحب المزاد…"})));
+        isHost ? (V.players.length<2 ? el("p",{style:"color:var(--sodium)",text:"بانتظار تاجر ثانٍ على الأقل… أرسل الرابط في سلاك"}) : el("button",{class:"btn",type:"button",onclick:start,text:"ابدأ المزاد"})) : el("p",{text:"بانتظار صاحب المزاد…"})));
       return;
     }
     if(g.status==="done") return renderEnd(s);
