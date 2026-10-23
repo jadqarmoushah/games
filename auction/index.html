@@ -1,0 +1,773 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>مزاد الحاويات</title>
+<meta name="description" content="حاويات مقفلة في ميناء مهجور. زايِد سرًا، اكذب، واهمس.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Stencil+Display:wght@600;800&family=Changa:wght@400;600;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap">
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<style>
+/* Night port: one sodium lamp over the container, chat on the dock office side, traders along the quay */
+:root{
+  --asphalt:#0C0F12; --asphalt-2:#14181D; --steel:#1C2228; --steel-2:#262E36; --line:rgba(255,190,120,.12); --line-2:rgba(255,255,255,.08);
+  --ink:#ECE6DC; --dim:#9A958C; --faint:#5F6066;
+  --sodium:#FF9A3C; --sodium-soft:rgba(255,154,60,.18);
+  --gold:#E9B44C; --ok:#7FC79A; --red:#E0533D; --whisper:#C9A2FF;
+  --c1:#8E3B2A; --c2:#2F5F66; --c3:#B0852C; --c4:#3E4A5C; --c5:#5D6B3A; --c6:#7A2F3F;
+  --display:"Changa","IBM Plex Sans Arabic",system-ui,sans-serif;
+  --body:"IBM Plex Sans Arabic",system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif;
+  --stencil:"Big Shoulders Stencil Display","Changa",Impact,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{margin:0;background:var(--asphalt);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.6;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+  background-image:radial-gradient(70% 55% at 50% -8%,rgba(255,154,60,.16),transparent 70%),repeating-linear-gradient(90deg,transparent 0 120px,rgba(255,255,255,.012) 120px 121px)}
+[hidden]{display:none!important}
+button,input,select{font-family:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--sodium);outline-offset:2px}
+.wrap{max-width:1240px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.num{font-family:var(--stencil);font-variant-numeric:tabular-nums;letter-spacing:.02em}
+
+/* top bar */
+header{padding-block:16px 12px}
+.bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{display:flex;align-items:baseline;gap:12px}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(26px,4.4vw,40px);line-height:1;margin:0;letter-spacing:-.01em}
+.brand .code{font-family:var(--stencil);font-size:15px;color:var(--sodium);letter-spacing:.12em;direction:ltr}
+.hud{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:6px;background:var(--steel);border:1px solid var(--line-2);font-size:13px;color:var(--dim);white-space:nowrap}
+.pill b{font-family:var(--stencil);font-size:22px;line-height:1;color:var(--ink);font-weight:800}
+.pill.cash b{color:var(--gold)}
+.pill.timer b{min-width:2ch;text-align:center}
+.pill.timer.hot{border-color:var(--red)} .pill.timer.hot b{color:var(--red)}
+.icon-btn{background:var(--steel);border:1px solid var(--line-2);color:var(--ink);border-radius:6px;padding:7px 10px;font-size:14px;line-height:1}
+
+/* layout */
+main{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:16px;padding-block:4px 16px;align-items:stretch}
+@media (max-width:920px){main{grid-template-columns:minmax(0,1fr)}}
+.card{background:linear-gradient(180deg,var(--asphalt-2),var(--asphalt));border:1px solid var(--line-2);border-radius:10px;min-width:0}
+
+/* stage */
+.stage{position:relative;overflow:hidden;padding:18px;display:flex;flex-direction:column;gap:16px;min-height:520px}
+.stage::before{content:"";position:absolute;inset:-40% 10% auto 10%;height:90%;background:radial-gradient(50% 50% at 50% 50%,rgba(255,154,60,.22),transparent 70%);pointer-events:none}
+.stage>*{position:relative}
+.stage-head{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap}
+.stage-head .k{font-size:12px;color:var(--dim);letter-spacing:.06em}
+.stage-head h2{font-family:var(--display);font-weight:800;font-size:30px;line-height:1;margin:2px 0 0}
+
+/* the container */
+.yard{display:flex;justify-content:center;perspective:1100px;padding-top:6px}
+.ctr{--c:var(--c1);position:relative;width:min(560px,100%);aspect-ratio:2.25/1;border-radius:4px;
+  background:linear-gradient(180deg,rgba(255,255,255,.08),transparent 18%,transparent 82%,rgba(0,0,0,.35)),
+    repeating-linear-gradient(90deg,var(--c) 0 14px,color-mix(in srgb,var(--c) 78%,black) 14px 18px,var(--c) 18px 24px);
+  box-shadow:0 30px 60px -20px rgba(0,0,0,.8),inset 0 0 0 3px color-mix(in srgb,var(--c) 60%,black),inset 0 10px 0 0 color-mix(in srgb,var(--c) 55%,black),inset 0 -10px 0 0 color-mix(in srgb,var(--c) 50%,black)}
+.ctr .inside{position:absolute;inset:10px 8px;background:radial-gradient(80% 90% at 50% 50%,#20242A,#07090B);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;padding:10px}
+.ctr .doors{position:absolute;inset:0;display:grid;grid-template-columns:1fr 1fr;transform-style:preserve-3d}
+.door{position:relative;transform-style:preserve-3d;transition:transform 1.6s cubic-bezier(.6,.05,.25,1);
+  background:linear-gradient(180deg,rgba(255,255,255,.07),transparent 18%,transparent 82%,rgba(0,0,0,.35)),
+    repeating-linear-gradient(90deg,var(--c) 0 10px,color-mix(in srgb,var(--c) 75%,black) 10px 13px);
+  box-shadow:inset 0 0 0 3px color-mix(in srgb,var(--c) 60%,black)}
+.door.l{transform-origin:left center}
+.door.r{transform-origin:right center}
+.ctr.open .door.l{transform:rotateY(-112deg)}
+.ctr.open .door.r{transform:rotateY(112deg)}
+.door::before,.door::after{content:"";position:absolute;top:8%;bottom:8%;width:5px;border-radius:3px;background:linear-gradient(180deg,#9ea3a8,#5d6268);box-shadow:0 0 0 1px rgba(0,0,0,.4)}
+.door.l::before{right:22%} .door.l::after{right:44%}
+.door.r::before{left:22%} .door.r::after{left:44%}
+.stencil{position:absolute;top:16%;font-family:var(--stencil);font-weight:800;color:rgba(236,230,220,.82);letter-spacing:.08em;direction:ltr;line-height:1;pointer-events:none}
+.door.l .stencil{right:56%;text-align:right;font-size:clamp(14px,2.6vw,22px)}
+.door.r .stencil{left:56%;font-size:clamp(11px,1.8vw,14px);color:rgba(236,230,220,.6)}
+.lock{position:absolute;top:50%;left:0;transform:translate(-50%,-50%);width:26px;height:34px;border-radius:4px;background:linear-gradient(180deg,#c9a24a,#7d5f22);box-shadow:0 2px 6px rgba(0,0,0,.6);z-index:2}
+.lock::before{content:"";position:absolute;left:5px;right:5px;top:-12px;height:16px;border:4px solid #a9a9a9;border-bottom:0;border-radius:10px 10px 0 0}
+.ctr.open .lock{opacity:0;transition:opacity .3s}
+
+/* peek: flashlight slip */
+.peek{position:absolute;inset:auto 12px 12px auto;z-index:3;background:rgba(10,12,14,.92);border:1px solid var(--sodium);border-radius:6px;padding:8px 12px;display:flex;align-items:center;gap:10px;box-shadow:0 0 0 4px var(--sodium-soft)}
+.peek .t{font-size:11px;color:var(--sodium);letter-spacing:.06em}
+.peek .v{font-family:var(--display);font-weight:800;font-size:18px;line-height:1.1}
+
+/* contents */
+.content-name{font-family:var(--display);font-weight:800;font-size:clamp(22px,4vw,34px);line-height:1}
+.content-val{font-family:var(--stencil);font-weight:800;font-size:clamp(34px,7vw,58px);line-height:1}
+.k-valuable{color:var(--gold)} .k-normal{color:#D9C7A5} .k-empty{color:var(--faint)} .k-contra{color:var(--red)} .k-key{color:var(--whisper)}
+.stamp{display:inline-block;border:3px solid var(--red);color:var(--red);font-family:var(--display);font-weight:800;padding:2px 14px;transform:rotate(-8deg);letter-spacing:.08em;font-size:clamp(20px,3.6vw,30px)}
+
+/* bid */
+.bid{display:flex;flex-direction:column;gap:10px;align-items:center}
+.bid-row{display:flex;gap:8px;align-items:stretch;justify-content:center;flex-wrap:wrap;width:100%}
+.bid-input{width:min(220px,100%);font-family:var(--stencil);font-weight:800;font-size:40px;line-height:1;text-align:center;padding:8px 10px;border-radius:6px;border:1px solid var(--line);background:#07090B;color:var(--gold);direction:ltr}
+.bid-input:focus{outline:none;border-color:var(--sodium);box-shadow:0 0 0 3px var(--sodium-soft)}
+.chips{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+.chip{border:1px solid var(--line-2);background:var(--steel);color:var(--ink);border-radius:5px;padding:5px 10px;font-family:var(--stencil);font-size:16px;font-weight:600;direction:ltr}
+.chip:hover{border-color:var(--sodium)}
+.btn{border:0;border-radius:6px;padding:12px 22px;font-size:16px;font-weight:600;background:var(--sodium);color:#1A0E03;font-family:var(--display)}
+.btn:hover{filter:brightness(1.08)}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line-2)}
+.btn.small{padding:7px 14px;font-size:14px}
+.btn[disabled]{opacity:.4;cursor:not-allowed}
+.status{font-size:13px;color:var(--dim);text-align:center;min-height:21px}
+.status b{color:var(--gold);font-family:var(--stencil);font-size:17px}
+
+/* reveal */
+.bids{display:flex;flex-direction:column;gap:4px;width:min(420px,100%);margin:0 auto}
+.brow{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:6px 12px;border-radius:5px;background:rgba(255,255,255,.03);opacity:0;transform:translateY(6px);transition:opacity .35s,transform .35s}
+.brow.in{opacity:1;transform:none}
+.brow .n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.brow .v{font-family:var(--stencil);font-size:20px;font-weight:800;direction:ltr}
+.brow.win{background:var(--sodium-soft);outline:1px solid var(--sodium)}
+.brow.win .v{color:var(--sodium)}
+.brow .v.zero{color:var(--faint)}
+.knew{font-size:14px;color:var(--dim);text-align:center}
+.knew b{color:var(--sodium)}
+.effect{font-size:15px;text-align:center}
+.pick{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+
+/* centre screens */
+.center{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:10px}
+.center h3{font-family:var(--display);font-weight:800;font-size:clamp(28px,5vw,44px);line-height:1.05;margin:0}
+.center p{margin:0;color:var(--dim);max-width:44ch}
+.name-input{font-size:18px;padding:12px 16px;border-radius:6px;border:1px solid var(--line-2);background:#07090B;color:var(--ink);width:min(260px,80vw);text-align:center}
+.legend{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;font-size:13px}
+.legend span{padding:4px 10px;border-radius:5px;background:var(--steel);border:1px solid var(--line-2)}
+.row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;align-items:center}
+
+/* chat */
+.chat{display:flex;flex-direction:column;min-height:520px;max-height:calc(100vh - 210px)}
+@media (max-width:920px){.chat{min-height:380px;max-height:none;height:440px}}
+.chat-head{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line-2)}
+.chat-head h2{font-family:var(--display);font-weight:600;font-size:18px;margin:0}
+.chat-head span{font-size:12px;color:var(--faint)}
+.log{flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:6px;min-height:0}
+.m{display:flex;flex-direction:column;gap:1px;max-width:92%}
+.m .who{font-size:12px;font-weight:600}
+.m .txt{font-size:15px;line-height:1.5;overflow-wrap:anywhere}
+.m.me{align-self:flex-start}
+.m.w .txt{color:var(--whisper)}
+.m.w .who::after{content:" · همس";color:var(--whisper);font-weight:400}
+.sys{align-self:center;font-size:12px;color:var(--faint);text-align:center;padding:2px 8px}
+.sys.ws{color:color-mix(in srgb,var(--whisper) 70%,var(--faint))}
+.sys.rd{color:var(--sodium);border-top:1px solid var(--line);width:100%;padding-top:8px;margin-top:4px;letter-spacing:.06em}
+.compose{display:flex;gap:6px;padding:10px;border-top:1px solid var(--line-2);align-items:center}
+.compose select{max-width:40%;font-size:13px;padding:9px 6px;border-radius:6px;border:1px solid var(--line-2);background:var(--steel);color:var(--ink)}
+.compose select.wh{border-color:var(--whisper);color:var(--whisper)}
+.compose input{flex:1;min-width:0;font-size:15px;padding:9px 12px;border-radius:6px;border:1px solid var(--line-2);background:#07090B;color:var(--ink)}
+.compose input.wh{border-color:var(--whisper)}
+
+/* quay: traders */
+.quay{display:flex;gap:8px;flex-wrap:wrap;padding-block:4px 20px}
+.trader{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:7px;background:var(--steel);border:1px solid var(--line-2);min-width:0;max-width:220px}
+.trader .dot{width:8px;height:8px;border-radius:50%;background:var(--faint);flex:none}
+.trader .dot.on{background:var(--ok)}
+.trader .nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px}
+.trader .cash{font-family:var(--stencil);font-weight:800;color:var(--gold);font-size:18px;direction:ltr}
+.trader .tick{font-size:12px;color:var(--ok)}
+.trader.me{border-color:var(--sodium)}
+.trader .x{border:0;background:transparent;color:var(--faint);padding:0 2px;font-size:16px}
+
+/* host strip */
+.host{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:10px 12px;border:1px dashed rgba(255,154,60,.35);border-radius:8px;margin-bottom:12px}
+.host code{direction:ltr;font-size:13px;color:var(--sodium);overflow-wrap:anywhere;user-select:all;flex:1;min-width:0}
+
+/* end */
+.rank{display:flex;flex-direction:column;gap:6px;width:min(460px,100%)}
+.rank .r{display:grid;grid-template-columns:32px 1fr auto;gap:10px;align-items:center;padding:10px 14px;border-radius:6px;background:var(--steel)}
+.rank .r:first-child{background:linear-gradient(90deg,rgba(233,180,76,.22),var(--steel));outline:1px solid var(--gold)}
+.rank .p{font-family:var(--stencil);font-size:20px;color:var(--dim)}
+.rank .c{font-family:var(--stencil);font-size:24px;font-weight:800;color:var(--gold);direction:ltr}
+.lines{display:flex;flex-direction:column;gap:4px;font-size:14px;color:var(--dim)}
+.lines b{color:var(--ink)}
+
+.toast{position:fixed;bottom:calc(18px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:var(--ink);color:var(--asphalt);padding:10px 18px;border-radius:6px;font-size:14px;z-index:60;max-width:calc(100% - 32px);text-align:center;font-weight:500}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<header class="wrap">
+  <div class="bar">
+    <div class="brand"><h1>مزاد الحاويات</h1><span class="code" id="portCode">PORT · —</span></div>
+    <div class="hud">
+      <span class="pill" id="roundPill" hidden>حاوية <b id="roundN">1</b><span>/ <span id="roundT">8</span></span></span>
+      <span class="pill timer" id="timerPill" hidden><b id="timer">60</b></span>
+      <span class="pill cash" id="cashPill" hidden>رصيدك <b id="cash">1000</b></span>
+      <button class="icon-btn" id="muteBtn" type="button" aria-label="الصوت">🔊</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap"><div class="host" id="hostBar" hidden></div></div>
+
+<main class="wrap">
+  <section class="card stage" id="stage" aria-live="polite"></section>
+  <section class="card chat" id="chatBox">
+    <div class="chat-head"><h2>رصيف الميناء</h2><span id="chatHint">الكل يقرأ · الهمس لواحد فقط</span></div>
+    <div class="log" id="log"></div>
+    <form class="compose" id="compose">
+      <select id="to" aria-label="إلى"></select>
+      <input id="msg" maxlength="140" autocomplete="off" placeholder="اكتب…">
+      <button class="btn small" type="submit">أرسل</button>
+    </form>
+  </section>
+</main>
+
+<div class="wrap"><div class="quay" id="quay"></div></div>
+<div class="toast" id="toast" hidden></div>
+
+<script id="rules">
+// Pure rules. No DOM. Host runs these; tests too.
+(function(root){
+  const A = {};
+  A.START = 1000; A.ROUNDS = 8; A.BID_SECS = 60; A.STEAL_PCT = 0.3; A.STEAL_SECS = 15;
+  A.KINDS = {valuable:"بضاعة ثمينة", normal:"بضاعة عادية", empty:"فارغة", contra:"مهرّبة", key:"مفتاح"};
+  const pick = (a, rnd) => a[Math.floor(rnd()*a.length)];
+  A.deck = function(rnd){
+    rnd = rnd || Math.random;
+    const kinds = ["valuable","valuable","normal","normal","empty","contra","key", pick(["normal","empty","valuable","empty"],rnd)];
+    for(let i=kinds.length-1;i>0;i--){ const j=Math.floor(rnd()*(i+1)); [kinds[i],kinds[j]]=[kinds[j],kinds[i]]; }
+    const colors = ["c1","c2","c3","c4","c5","c6"];
+    return kinds.map((k,i)=>({
+      kind:k,
+      value: k==="valuable" ? 1500+Math.round(rnd()*10)*100 : k==="normal" ? 300+Math.round(rnd()*5)*100 : 0,
+      code: ["MSKU","CMAU","TGHU","OOLU","HLXU","CSNU"][Math.floor(rnd()*6)]+" "+String(100000+Math.floor(rnd()*899999)),
+      color: colors[(i+Math.floor(rnd()*6))%6]
+    }));
+  };
+  A.peekCount = n => n>=6 ? 2 : 1;
+  A.choosePeekers = function(ids, peekCounts, k, rnd){
+    rnd = rnd || Math.random;
+    const pool = ids.slice().sort(()=>rnd()-.5).sort((a,b)=>(peekCounts[a]||0)-(peekCounts[b]||0));
+    return pool.slice(0, Math.min(k, Math.max(0, ids.length-1)));
+  };
+  // bids: {id:{v,at}}. Highest wins, earliest on ties. All-zero means unsold.
+  A.winner = function(bids){
+    let best=null;
+    for(const [id,b] of Object.entries(bids)){
+      if(!(b.v>0)) continue;
+      if(!best || b.v>best.v || (b.v===best.v && b.at<best.at)) best={id, v:b.v, at:b.at};
+    }
+    return best;
+  };
+  // applies payment + content to cash map. Returns {delta, note}
+  A.apply = function(cash, win, box){
+    if(!win) return {delta:0};
+    const before = cash[win.id];
+    cash[win.id] -= win.v;
+    if(box.kind==="valuable"||box.kind==="normal") cash[win.id] += box.value;
+    if(box.kind==="contra") cash[win.id] = Math.floor(cash[win.id]/2);
+    return {delta: cash[win.id]-before, before, after:cash[win.id]};
+  };
+  A.steal = function(cash, thief, target){
+    const amt = Math.floor(Math.max(0,cash[target]) * A.STEAL_PCT);
+    cash[target] -= amt; cash[thief] += amt;
+    return amt;
+  };
+  root.AUC = A;
+})(typeof window!=="undefined"?window:globalThis);
+</script>
+
+<script>
+(() => {
+  const A = window.AUC;
+  const PREFIX = "port-auction-v1-";
+  const $ = id => document.getElementById(id);
+  const store = { get(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }, set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} } };
+  function el(tag, attrs={}, ...kids){
+    const n=document.createElement(tag);
+    for(const [k,v] of Object.entries(attrs)){
+      if(k==="class") n.className=v; else if(k==="text") n.textContent=v;
+      else if(k.startsWith("on")) n.addEventListener(k.slice(2),v);
+      else if(v!==false&&v!=null) n.setAttribute(k, v===true?"":v);
+    }
+    for(const c of kids){ if(c==null||c===false) continue; n.append(c.nodeType?c:document.createTextNode(c)); }
+    return n;
+  }
+  const fmt = n => Number(n||0).toLocaleString("en-US");
+  function toast(m){ const t=$("toast"); t.textContent=m; t.hidden=false; clearTimeout(toast._t); toast._t=setTimeout(()=>t.hidden=true,3000); }
+  function rid(n){ const a="abcdefghjkmnpqrstuvwxyz23456789"; let s=""; for(const x of crypto.getRandomValues(new Uint8Array(n))) s+=a[x%a.length]; return s; }
+  const clean = (s,max=18) => String(s||"").replace(/[\u0000-\u001f​-‏‪-‮]/g,"").trim().slice(0,max);
+
+  /* ---------- sound ---------- */
+  let actx=null, muted=!!store.get(PREFIX+"muted");
+  $("muteBtn").textContent=muted?"🔇":"🔊";
+  $("muteBtn").addEventListener("click",()=>{ muted=!muted; store.set(PREFIX+"muted",muted); $("muteBtn").textContent=muted?"🔇":"🔊"; });
+  function audio(){ if(muted) return null; try{ if(!actx) actx=new (window.AudioContext||window.webkitAudioContext)(); if(actx.state==="suspended") actx.resume(); }catch(e){ return null; } return actx; }
+  addEventListener("pointerdown",()=>audio(),{once:true});
+  function tone(f,t0,dur,type="sine",vol=.12){ const a=audio(); if(!a) return; const o=a.createOscillator(), g=a.createGain(); o.type=type; o.frequency.value=f;
+    g.gain.setValueAtTime(0,a.currentTime+t0); g.gain.linearRampToValueAtTime(vol,a.currentTime+t0+.01); g.gain.exponentialRampToValueAtTime(.0001,a.currentTime+t0+dur);
+    o.connect(g).connect(a.destination); o.start(a.currentTime+t0); o.stop(a.currentTime+t0+dur+.05); }
+  function noise(t0,dur,vol,type,freq,sweep){ const a=audio(); if(!a) return;
+    const b=a.createBuffer(1,Math.floor(a.sampleRate*dur),a.sampleRate), d=b.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1;
+    const s=a.createBufferSource(); s.buffer=b; const f=a.createBiquadFilter(); f.type=type; f.frequency.setValueAtTime(freq,a.currentTime+t0); if(sweep) f.frequency.exponentialRampToValueAtTime(sweep,a.currentTime+t0+dur); f.Q.value=8;
+    const g=a.createGain(); g.gain.setValueAtTime(vol,a.currentTime+t0); g.gain.exponentialRampToValueAtTime(.0001,a.currentTime+t0+dur);
+    s.connect(f).connect(g).connect(a.destination); s.start(a.currentTime+t0); }
+  const sfx = {
+    gavel(t=0){ tone(95,t,.25,"sine",.5); noise(t,.08,.4,"bandpass",900); },
+    creak(t=0){ noise(t,1.4,.18,"bandpass",260,140); tone(70,t,1.2,"sawtooth",.04); },
+    clank(t=0){ noise(t,.25,.35,"bandpass",2400); tone(180,t,.3,"square",.05); },
+    good(t=0){ [392,523,659].forEach((f,i)=>tone(f,t+i*.08,.6,"triangle",.09)); },
+    bad(t=0){ tone(110,t,.8,"sawtooth",.08); tone(104,t+.05,.8,"sawtooth",.06); },
+    tick(){ tone(1200,0,.03,"square",.03); },
+    msg(){ tone(880,0,.06,"sine",.04); },
+    whisper(){ noise(0,.25,.06,"highpass",3000); }
+  };
+
+  /* ---------- identity ---------- */
+  const params=new URLSearchParams(location.search);
+  let code=(params.get("r")||"").toLowerCase().replace(/[^a-z0-9]/g,"").slice(0,12);
+  let me=store.get(PREFIX+"me"); if(!me){ me="p"+rid(10); store.set(PREFIX+"me",me); }
+  let myName=store.get(PREFIX+"name")||"";
+  const hosted=store.get(PREFIX+"hosted")||{};
+  let isHost=!!(code&&hosted[code]);
+  $("portCode").textContent = code ? "PORT · "+code.toUpperCase() : "PORT · —";
+
+  /* ---------- client view ---------- */
+  let V=null, P=null, net="connecting";
+  let deadlineLocal=0, revealDone="", lastLogLen=0;
+
+  /* ---------- HOST ---------- */
+  let H=null; const conns=new Map();
+  function fresh(){ return {players:{}, g:{status:"lobby", seq:1, round:0, phase:null, deadline:0, deck:[], peekers:[], bids:{}, history:[], peekCounts:{}}, chat:[]}; }
+  function hostLoad(){ H=store.get(PREFIX+"room-"+code)||fresh(); }
+  const save=()=>store.set(PREFIX+"room-"+code,H);
+  const online=()=>{ const s=new Set([me]); for(const [id,c] of conns) if(c.open) s.add(id); return s; };
+  const inGame=id=>!!H.players[id] && H.players[id].cash!=null;
+  function pubState(){
+    const g=H.g, on=online();
+    const players=Object.entries(H.players).sort((a,b)=>a[1].at-b[1].at).map(([id,p])=>({id,name:p.name,on:on.has(id),cash:p.cash,bid:g.phase==="bid"&&!!g.bids[id]}));
+    const box=g.deck[g.round-1];
+    let reveal=null;
+    const last=g.history[g.history.length-1];
+    if((g.phase==="reveal"||g.phase==="steal"||g.phase==="stolen") && last && last.round===g.round) reveal=last;
+    return {players, g:{status:g.status, seq:g.seq, round:g.round, total:A.ROUNDS, phase:g.phase, remaining:Math.max(0,g.deadline-Date.now()),
+      box: box ? {code:box.code, color:box.color} : null, reveal, history:g.status==="done"?g.history:null}};
+  }
+  function chatFor(id){
+    return H.chat.slice(-150).map(m=>{
+      if(m.sys) return m;
+      if(m.to){ if(m.f===id||m.to===id) return m; return {f:m.f,to:m.to,ws:true}; }
+      return m;
+    });
+  }
+  function privFor(id){
+    const g=H.g, box=g.deck[g.round-1];
+    const peek = g.status==="running" && g.peekers.includes(id) && box ? {kind:box.kind, value:box.value} : null;
+    return {peek, bid:g.bids[id]?g.bids[id].v:null, chat:chatFor(id)};
+  }
+  let bt=null;
+  function commit(){
+    save(); clearTimeout(bt);
+    bt=setTimeout(()=>{
+      const st=pubState();
+      for(const [id,c] of conns) if(c.open){ try{ c.send({t:"s",st,me:privFor(id)}); }catch(e){} }
+      apply(st,privFor(me));
+    },30);
+  }
+  function sys(text, kind){ H.chat.push({sys:true, x:text, k:kind||""}); if(H.chat.length>300) H.chat.splice(0,H.chat.length-300); }
+  function start(){
+    const ids=Object.keys(H.players);
+    if(ids.length<2){ toast("نحتاج تاجرين على الأقل"); return; }
+    for(const id of ids) H.players[id].cash=A.START;
+    H.g={status:"running", seq:(H.g.seq||0)+1, round:0, phase:null, deadline:0, deck:A.deck(), peekers:[], bids:{}, history:[], peekCounts:{}};
+    H.chat=[]; nextRound();
+  }
+  function nextRound(){
+    const g=H.g;
+    if(g.round>=A.ROUNDS){ g.status="done"; g.phase=null; sys("أُغلق المزاد","rd"); commit(); return; }
+    g.round++; g.bids={};
+    const ids=Object.keys(H.players).filter(inGame);
+    g.peekers=A.choosePeekers(ids, g.peekCounts, A.peekCount(ids.length));
+    for(const p of g.peekers) g.peekCounts[p]=(g.peekCounts[p]||0)+1;
+    g.phase="bid"; g.deadline=Date.now()+A.BID_SECS*1000;
+    sys(`الحاوية ${g.round}`,"rd");
+    commit();
+  }
+  function reveal(){
+    const g=H.g, box=g.deck[g.round-1];
+    const cash={}; for(const [id,p] of Object.entries(H.players)) if(inGame(id)) cash[id]=p.cash;
+    // a bid can never exceed what the trader holds at reveal time
+    const bids={}; for(const [id,b] of Object.entries(g.bids)) if(cash[id]!=null) bids[id]={v:Math.min(b.v,cash[id]),at:b.at};
+    const win=A.winner(bids);
+    const res=A.apply(cash,win,box);
+    for(const id of Object.keys(cash)) H.players[id].cash=cash[id];
+    g.history.push({round:g.round, code:box.code, color:box.color, kind:box.kind, value:box.value,
+      winner:win?win.id:null, price:win?win.v:0, delta:res.delta||0,
+      bids:Object.keys(cash).map(id=>[id, bids[id]?bids[id].v:0]).sort((a,b)=>a[1]-b[1]),
+      peekers:g.peekers.slice(), steal:null});
+    const steps=Object.keys(cash).length;
+    if(box.kind==="key" && win){ g.phase="steal"; g.deadline=Date.now()+(4.2+0.45*steps)*1000+A.STEAL_SECS*1000; }
+    else { g.phase="reveal"; g.deadline=Date.now()+(8+0.45*steps)*1000; }
+    commit();
+  }
+  function doSteal(target){
+    const g=H.g, h=g.history[g.history.length-1];
+    if(g.phase!=="steal"||!h) return;
+    const victims=Object.keys(H.players).filter(id=>inGame(id)&&id!==h.winner);
+    if(!victims.length){ g.phase="reveal"; g.deadline=Date.now()+3000; commit(); return; }
+    if(!victims.includes(target)) target=victims.sort((a,b)=>H.players[b].cash-H.players[a].cash)[0];
+    const cash={}; for(const id of Object.keys(H.players)) if(inGame(id)) cash[id]=H.players[id].cash;
+    const amt=A.steal(cash,h.winner,target);
+    for(const id of Object.keys(cash)) H.players[id].cash=cash[id];
+    h.steal={target,amt}; h.delta+=amt;
+    g.phase="stolen"; g.deadline=Date.now()+5000; commit();
+  }
+  function tick(){
+    if(!H||H.g.status!=="running") return;
+    const g=H.g, now=Date.now();
+    if(g.phase==="bid"){
+      const ids=Object.keys(H.players).filter(inGame), on=online();
+      const allIn = ids.filter(id=>on.has(id)).every(id=>g.bids[id]);
+      if(allIn && g.deadline-now>6000){ g.deadline=now+6000; commit(); }
+      if(now>=g.deadline) reveal();
+    }
+    else if(g.phase==="steal" && now>=g.deadline) doSteal(null);
+    else if((g.phase==="reveal"||g.phase==="stolen") && now>=g.deadline) nextRound();
+  }
+  const rate=new Map();
+  function handle(from,m){
+    if(!m||typeof m!=="object") return;
+    const g=H.g;
+    switch(m.t){
+      case "hi": { const n=clean(m.name); if(n&&H.players[from]) H.players[from].name=n; commit(); break; }
+      case "join": {
+        const n=clean(m.name); if(!n) return;
+        if(g.status==="running" && !H.players[from]){ H.players[from]={name:n,at:Date.now(),cash:null}; sys(`${n} · متفرّج`); commit(); return; }
+        const isNew=!H.players[from];
+        H.players[from]=H.players[from]?{...H.players[from],name:n}:{name:n,at:Date.now(),cash:null};
+        if(isNew) sys(`${n} في الميناء`);
+        commit(); break;
+      }
+      case "kick": { if(from!==me||g.status==="running") return; delete H.players[m.id]; commit(); break; }
+      case "bid": {
+        if(g.status!=="running"||g.phase!=="bid"||!inGame(from)) return;
+        let v=Math.floor(+m.v); if(!isFinite(v)||v<0) return;
+        v=Math.min(v,H.players[from].cash);
+        g.bids[from]={v, at: g.bids[from] && g.bids[from].v===v ? g.bids[from].at : Date.now()};
+        commit(); break;
+      }
+      case "chat": {
+        const now=Date.now(); if(now-(rate.get(from)||0)<500) return; rate.set(from,now);
+        if(!H.players[from]) return;
+        const x=clean(m.x,140); if(!x) return;
+        const to = m.to && H.players[m.to] && m.to!==from ? m.to : null;
+        H.chat.push(to?{f:from,to,x}:{f:from,x});
+        if(H.chat.length>300) H.chat.splice(0,H.chat.length-300);
+        commit(); break;
+      }
+      case "steal": {
+        const h=g.history[g.history.length-1];
+        if(g.phase!=="steal"||!h||h.winner!==from) return;
+        doSteal(m.id); break;
+      }
+    }
+  }
+
+  /* ---------- network ---------- */
+  let peer=null, hc=null, rt=null, send=()=>false;
+  const pid=()=>PREFIX+code;
+  function startHost(){
+    hostLoad(); net="connecting"; render();
+    peer=new Peer(pid(),{debug:0});
+    peer.on("open",()=>{ net="open"; commit(); });
+    peer.on("connection",c=>{
+      c.on("open",()=>{
+        const id=String(c.metadata?.id||"").slice(0,20); if(!/^p[a-z0-9]{6,19}$/.test(id)){ c.close(); return; }
+        const old=conns.get(id); if(old&&old!==c){ try{old.close();}catch(e){} }
+        conns.set(id,c);
+        c.on("data",d=>handle(id,d));
+        c.on("close",()=>{ if(conns.get(id)===c){ conns.delete(id); commit(); } });
+        handle(id,{t:"hi",name:c.metadata?.name});
+      });
+    });
+    peer.on("disconnected",()=>{ net="lost"; render(); setTimeout(()=>{ try{peer.reconnect();}catch(e){} },1500); });
+    peer.on("error",e=>{ if(e.type==="unavailable-id"){ net="dup"; render(); } });
+    send=m=>{ handle(me,m); return true; };
+    setInterval(tick,250);
+  }
+  function startClient(){
+    net="connecting"; render();
+    peer=new Peer(undefined,{debug:0});
+    peer.on("open",connect);
+    peer.on("disconnected",()=>setTimeout(()=>{ try{peer.reconnect();}catch(e){} },1500));
+    peer.on("error",e=>{ if(e.type==="peer-unavailable"){ net="missing"; render(); retry(4000); } else if(["network","server-error","socket-error","socket-closed"].includes(e.type)){ net="lost"; render(); retry(3000); } });
+    send=m=>{ if(hc&&hc.open){ try{ hc.send(m); return true; }catch(e){} } toast("الاتصال مقطوع… نحاول"); return false; };
+  }
+  function retry(ms){ clearTimeout(rt); rt=setTimeout(connect,ms); }
+  function connect(){
+    if(!peer||peer.destroyed) return;
+    if(peer.disconnected){ try{peer.reconnect();}catch(e){} retry(2000); return; }
+    const c=peer.connect(pid(),{reliable:true,metadata:{id:me,name:myName}}); hc=c;
+    const to=setTimeout(()=>{ if(!c.open){ try{c.close();}catch(e){} retry(2500); } },9000);
+    c.on("open",()=>{ clearTimeout(to); net="open"; render(); });
+    c.on("data",d=>{ if(d&&d.t==="s") apply(d.st,d.me); });
+    c.on("close",()=>{ clearTimeout(to); if(hc===c){ net="lost"; render(); retry(2000); } });
+    c.on("error",()=>{});
+  }
+
+  /* ---------- apply ---------- */
+  let lastPhase="";
+  function apply(st,p){
+    const prevPhase=lastPhase;
+    V=st; P=p;
+    deadlineLocal=performance.now()+(st.g.remaining||0);
+    const ph=`${st.g.seq}.${st.g.round}.${st.g.phase}`;
+    lastPhase=ph;
+    const stageKey = ph + "|" + (st.g.status);
+    // re-render stage only when the phase changes, or in lobby/end; otherwise patch lightweight parts
+    const keepBid = document.activeElement && document.activeElement.id==="bidInput" ? document.activeElement.value : null;
+    if(stageKey!==renderedStage || st.g.status!=="running" || st.g.phase==="steal") renderStage(); else patchStage();
+    if(keepBid!=null){ const b=$("bidInput"); if(b){ b.value=keepBid; b.focus(); } }
+    renderHud(); renderQuay(); renderChat(); renderHost();
+    if(prevPhase!==ph && st.g.phase==="bid"){ sfx.clank(); }
+  }
+  const nameOf=id=>{ const p=V?.players?.find(x=>x.id===id); return p?.name || "تاجر"; };
+  const meP=()=>V?.players?.find(p=>p.id===me);
+  const joined=()=>!!meP();
+  const playing=()=>{ const p=meP(); return !!p && p.cash!=null; };
+
+  /* ---------- render ---------- */
+  let renderedStage="";
+  function render(){ renderHud(); renderStage(); renderQuay(); renderChat(); renderHost(); }
+  function renderHud(){
+    const g=V?.g, run=g&&g.status==="running";
+    $("roundPill").hidden=!run; $("timerPill").hidden=!run||!(g.phase==="bid"||g.phase==="steal");
+    $("cashPill").hidden=!(V&&playing()&&g.status!=="lobby");
+    if(run){ $("roundN").textContent=String(g.round); $("roundT").textContent=String(g.total); }
+    const mp=meP(); if(mp&&mp.cash!=null) $("cash").textContent=fmt(mp.cash);
+  }
+  function ctrEl(box, open, inside){
+    const c=el("div",{class:"ctr"+(open?" open":""),id:"ctr"});
+    c.style.setProperty("--c",`var(--${box.color||"c1"})`);
+    const [pre,num]=(box.code||"CNTR 000000").split(" ");
+    c.append(el("div",{class:"inside",id:"inside"},...(inside||[])),
+      el("div",{class:"doors"},
+        el("div",{class:"door l"}, el("div",{class:"stencil"}, pre, el("br"), num)),
+        el("div",{class:"door r"}, el("div",{class:"stencil",text:"MAX GR 30,480 KG\nTARE 2,200 KG",style:"white-space:pre"}), el("div",{class:"lock"}))));
+    return c;
+  }
+  function contentEls(kind,value,steal){
+    const name=A.KINDS[kind];
+    if(kind==="valuable"||kind==="normal") return [el("div",{class:"content-name k-"+kind,text:name}), el("div",{class:"content-val num k-"+kind,text:"+"+fmt(value)})];
+    if(kind==="empty") return [el("div",{class:"content-name k-empty",text:"فارغة"}), el("div",{class:"content-val num k-empty",text:"0"})];
+    if(kind==="contra") return [el("div",{class:"stamp",text:"مصادَرة"}), el("div",{class:"content-name k-contra",text:"بضاعة مهرّبة · نصف رصيده"})];
+    return [el("div",{class:"content-name k-key",text:"مفتاح"}), el("div",{class:"content-val num k-key",text:"30%"}), el("div",{style:"color:var(--dim);font-size:13px",text:"يسرق من تاجر يختاره"})];
+  }
+  function peekLabel(pk){
+    if(pk.kind==="valuable"||pk.kind==="normal") return `${A.KINDS[pk.kind]} · ${fmt(pk.value)}`;
+    return A.KINDS[pk.kind];
+  }
+
+  function center(...k){ return el("div",{class:"center"},...k); }
+  function renderStage(){
+    const s=$("stage"); s.replaceChildren();
+    const g=V?.g;
+    renderedStage = g ? `${g.seq}.${g.round}.${g.phase}|${g.status}` : "";
+    if(!code){
+      s.append(center(ctrEl({code:"PORT 000000",color:"c1"},false),
+        el("h3",{text:"حاويات مقفلة. لا أحد يعرف ما فيها."}),
+        el("p",{text:"تقريبًا لا أحد."}),
+        el("button",{class:"btn",type:"button",onclick:createRoom,text:"افتح الميناء"})));
+      return;
+    }
+    if(typeof Peer==="undefined"){ s.append(center(el("h3",{text:"لا اتصال"}),el("p",{text:"تأكد من الإنترنت وحدّث الصفحة."}))); return; }
+    if(net==="dup"){ s.append(center(el("h3",{text:"الميناء مفتوح في تبويب آخر"}))); return; }
+    if(!V){ s.append(center(el("h3",{text:net==="missing"?"الميناء مغلق الآن":"…"}),net==="missing"?el("p",{text:"ندخلك فور وصول صاحب المزاد."}):null)); return; }
+
+    if(!joined()){
+      const inp=el("input",{class:"name-input",id:"nameInput",maxlength:"18",placeholder:"اسمك",value:myName,autocomplete:"nickname"});
+      const go=()=>{ const n=clean(inp.value); if(!n){ inp.focus(); return; } myName=n; store.set(PREFIX+"name",n); audio(); send({t:"join",name:n}); };
+      inp.addEventListener("keydown",e=>{ if(e.key==="Enter") go(); });
+      s.append(center(el("h3",{text:"ادخل الميناء"}), el("div",{class:"row"},inp,el("button",{class:"btn",type:"button",onclick:go,text:"ادخل"}))));
+      return;
+    }
+    if(g.status==="lobby"){
+      s.append(center(
+        ctrEl({code:"MSKU 482193",color:"c2"},false),
+        el("h3",{text:"زايِد سرًا. الأعلى يأخذ الحاوية."}),
+        el("p",{text:"كل جولة، واحد منكم دخل وشاف ما في داخلها."}),
+        el("div",{class:"legend"},
+          el("span",{class:"k-valuable",text:"ثمينة"}), el("span",{class:"k-normal",text:"عادية"}), el("span",{class:"k-empty",text:"فارغة"}),
+          el("span",{class:"k-contra",text:"مهرّبة · تخسر النصف"}), el("span",{class:"k-key",text:"مفتاح · تسرق 30%"})),
+        isHost ? el("button",{class:"btn",type:"button",disabled:V.players.length<2,onclick:start,text:"ابدأ المزاد"}) : el("p",{text:"بانتظار صاحب المزاد…"})));
+      return;
+    }
+    if(g.status==="done") return renderEnd(s);
+
+    const head=el("div",{class:"stage-head"}, el("div",{}, el("div",{class:"k",text:g.box?g.box.code:""}), el("h2",{text:`الحاوية ${g.round}`})));
+    s.append(head);
+    if(g.phase==="bid") return renderBid(s);
+    renderReveal(s);
+  }
+
+  function renderBid(s){
+    const g=V.g, box=g.box;
+    const yard=el("div",{class:"yard"}, ctrEl(box,false));
+    s.append(yard);
+    if(P?.peek){
+      const c=yard.querySelector(".ctr");
+      c.append(el("div",{class:"peek"}, el("div",{}, el("div",{class:"t",text:"دخلت وشفت"}), el("div",{class:"v k-"+P.peek.kind,text:peekLabel(P.peek)}))));
+    }
+    if(!playing()){ s.append(el("div",{class:"status",text:"تتفرّج هذه المرة. تدخل المزاد القادم."})); return; }
+    const mp=meP(), max=mp.cash;
+    const inp=el("input",{class:"bid-input",id:"bidInput",type:"number",inputmode:"numeric",min:"0",max:String(max),step:"50",placeholder:"0",value:P?.bid!=null?String(P.bid):""});
+    const submit=()=>{ let v=Math.max(0,Math.min(max,Math.floor(+inp.value||0))); inp.value=String(v); send({t:"bid",v}); audio(); };
+    inp.addEventListener("keydown",e=>{ if(e.key==="Enter") submit(); });
+    const add=n=>()=>{ inp.value=String(Math.min(max,Math.max(0,(Math.floor(+inp.value||0))+n))); };
+    s.append(el("div",{class:"bid"},
+      el("div",{class:"bid-row"}, inp, el("button",{class:"btn",type:"button",onclick:submit,text:"قدّم عرضي"})),
+      el("div",{class:"chips"},
+        el("button",{class:"chip",type:"button",onclick:add(100),text:"+100"}),
+        el("button",{class:"chip",type:"button",onclick:add(500),text:"+500"}),
+        el("button",{class:"chip",type:"button",onclick:()=>{inp.value=String(Math.floor(max/2));},text:"½"}),
+        el("button",{class:"chip",type:"button",onclick:()=>{inp.value=String(max);},text:"ALL IN"}),
+        el("button",{class:"chip",type:"button",onclick:()=>{inp.value="0";},text:"0"})),
+      el("div",{class:"status",id:"bidStatus"})));
+    patchStage();
+  }
+  function patchStage(){
+    const st=$("bidStatus"); if(!st) return;
+    st.replaceChildren();
+    if(P?.bid!=null){ st.append(P.bid>0?"عرضك ":"", P.bid>0?el("b",{text:fmt(P.bid)}):"لن تزايد هذه المرة", P.bid>0?" · تقدر تغيّره":""); }
+    else st.append("عرضك سري. لا أحد يراه قبل الكشف.");
+  }
+
+  function renderReveal(s){
+    const g=V.g, r=g.reveal; if(!r) return;
+    const key=`${g.seq}.${r.round}`;
+    const fresh=revealDone!==key;
+    const yard=el("div",{class:"yard"}, ctrEl({code:r.code,color:r.color}, !fresh, contentEls(r.kind,r.value)));
+    s.append(yard);
+    const list=el("div",{class:"bids"});
+    for(const [id,v] of r.bids){
+      const row=el("div",{class:"brow"+(fresh?"":" in")+(id===r.winner?" win":"")}, el("span",{class:"n",text:nameOf(id)+(id===me?" (أنت)":"")}), el("span",{class:"v"+(v?"":" zero"),text:v?fmt(v):"—"}));
+      list.append(row);
+    }
+    s.append(list);
+    const after=el("div",{id:"after",style:fresh?"opacity:0;transition:opacity .5s":""});
+    let eff;
+    if(!r.winner) eff="لم يزايد أحد. بقيت في الميناء.";
+    else if(r.kind==="valuable"||r.kind==="normal") eff=`${nameOf(r.winner)} · الثمن ${fmt(r.price)} · ${r.delta>=0?"ربح":"خسارة"} ${fmt(Math.abs(r.delta))}`;
+    else if(r.kind==="empty") eff=`${nameOf(r.winner)} · الثمن ${fmt(r.price)} · على لا شيء`;
+    else if(r.kind==="contra") eff=`${nameOf(r.winner)} · الثمن ${fmt(r.price)} · صودر نصف الرصيد`;
+    else eff=`${nameOf(r.winner)} · الثمن ${fmt(r.price)} · 🔑 المفتاح`;
+    after.append(el("div",{class:"effect",text:eff}));
+    if(r.peekers.length) after.append(el("div",{class:"knew"}, "كان يعرف: ", el("b",{text:r.peekers.map(id=>id===me?"أنت":nameOf(id)).join(" و ")})));
+    if(r.steal) after.append(el("div",{class:"effect k-key",text:`🔑 سرقة: ${fmt(r.steal.amt)} من ${nameOf(r.steal.target)} إلى ${nameOf(r.winner)}`}));
+    if(g.phase==="steal"){
+      if(r.winner===me){
+        const pk=el("div",{class:"pick"});
+        for(const p of V.players) if(p.id!==me&&p.cash!=null) pk.append(el("button",{class:"btn small ghost",type:"button",onclick:()=>send({t:"steal",id:p.id})}, `${p.name} · `, el("span",{class:"num",text:fmt(p.cash)})));
+        after.append(el("div",{class:"knew",style:"margin-top:8px",text:"اختر من تسرق:"}), pk);
+      } else after.append(el("div",{class:"knew",style:"margin-top:8px",text:`🔑 ${nameOf(r.winner)} · اختيار الضحية…`}));
+    }
+    s.append(after);
+    if(fresh){
+      revealDone=key;
+      const rows=[...list.children];
+      rows.forEach((row,i)=>setTimeout(()=>{ row.classList.add("in"); sfx.tick(); },300+i*450));
+      const tOpen=300+rows.length*450+500;
+      setTimeout(()=>sfx.gavel(),tOpen-300);
+      setTimeout(()=>{ const c=$("ctr"); if(c){ c.classList.add("open"); sfx.creak(); } },tOpen);
+      setTimeout(()=>{ const a=$("after"); if(a) a.style.opacity="1"; (r.kind==="valuable"||r.kind==="normal")?sfx.good():(r.winner?sfx.bad():null); },tOpen+1500);
+    }
+  }
+
+  function renderEnd(s){
+    const ranked=V.players.filter(p=>p.cash!=null).sort((a,b)=>b.cash-a.cash);
+    const hist=V.g.history||[];
+    const deals=hist.filter(h=>h.winner);
+    const best=deals.slice().sort((a,b)=>b.delta-a.delta)[0];
+    const worst=deals.slice().sort((a,b)=>a.delta-b.delta)[0];
+    const bigSteal=hist.filter(h=>h.steal).sort((a,b)=>b.steal.amt-a.steal.amt)[0];
+    const rank=el("div",{class:"rank"});
+    ranked.forEach((p,i)=>rank.append(el("div",{class:"r"}, el("span",{class:"p",text:String(i+1)}), el("span",{text:p.name+(p.id===me?" (أنت)":"")}), el("span",{class:"c",text:fmt(p.cash)}))));
+    const lines=el("div",{class:"lines"});
+    if(best&&best.delta>0) lines.append(el("div",{}, "أفضل صفقة: ", el("b",{text:nameOf(best.winner)}), ` · الثمن ${fmt(best.price)} · ربح ${fmt(best.delta)}`));
+    if(worst&&worst.delta<0) lines.append(el("div",{}, "أسوأ صفقة: ", el("b",{text:nameOf(worst.winner)}), ` · خسارة ${fmt(-worst.delta)} · ${A.KINDS[worst.kind]}`));
+    if(bigSteal) lines.append(el("div",{}, "أكبر سرقة: ", el("b",{text:fmt(bigSteal.steal.amt)}), ` من ${nameOf(bigSteal.steal.target)} إلى ${nameOf(bigSteal.winner)}`));
+    s.append(center(el("h3",{text:ranked[0]?`${ranked[0].name} · الأغنى في الميناء`:"انتهى المزاد"}), rank, lines,
+      isHost?el("button",{class:"btn",type:"button",onclick:start,text:"مزاد جديد"}):null));
+  }
+
+  function renderQuay(){
+    const q=$("quay"); q.replaceChildren();
+    if(!V) return;
+    const g=V.g;
+    for(const p of V.players){
+      const t=el("div",{class:"trader"+(p.id===me?" me":"")}, el("span",{class:"dot"+(p.on?" on":"")}), el("span",{class:"nm",text:p.name}),
+        p.cash!=null && g.status!=="lobby" ? el("span",{class:"cash",text:fmt(p.cash)}) : null,
+        g.phase==="bid" && p.bid ? el("span",{class:"tick",text:"✓"}) : null);
+      if(isHost && g.status!=="running" && p.id!==me) t.append(el("button",{class:"x",type:"button","aria-label":"إزالة",text:"×",onclick:()=>send({t:"kick",id:p.id})}));
+      q.append(t);
+    }
+  }
+
+  function renderChat(){
+    const log=$("log"), sel=$("to");
+    const msgs=P?.chat||[];
+    const atBottom = log.scrollHeight-log.scrollTop-log.clientHeight < 40;
+    log.replaceChildren();
+    if(!msgs.length) log.append(el("div",{class:"sys",text:"الرصيف هادئ… حتى الآن."}));
+    for(const m of msgs){
+      if(m.sys){ log.append(el("div",{class:"sys"+(m.k==="rd"?" rd":""),text:m.x})); continue; }
+      if(m.ws){ log.append(el("div",{class:"sys ws",text:`${nameOf(m.f)} همس لـ ${nameOf(m.to)}`})); continue; }
+      const w=!!m.to;
+      const who = w ? (m.f===me?`أنت ← ${nameOf(m.to)}`:`${nameOf(m.f)} ← أنت`) : (m.f===me?"أنت":nameOf(m.f));
+      const d=el("div",{class:"m"+(m.f===me?" me":"")+(w?" w":"")}, el("span",{class:"who",text:who}), el("span",{class:"txt",text:m.x}));
+      d.querySelector(".who").style.color = `hsl(${hue(m.f)} 60% 68%)`;
+      log.append(d);
+    }
+    if(msgs.length>lastLogLen && lastLogLen>0){ const lm=msgs[msgs.length-1]; if(lm && !lm.sys && lm.f!==me){ (lm.to===me?sfx.whisper:sfx.msg)(); } }
+    lastLogLen=msgs.length;
+    if(atBottom||true) log.scrollTop=log.scrollHeight;
+    // recipients
+    const cur=sel.value;
+    sel.replaceChildren(el("option",{value:"",text:"للكل"}));
+    for(const p of (V?.players||[])) if(p.id!==me) sel.append(el("option",{value:p.id,text:"همس ← "+p.name}));
+    if([...sel.options].some(o=>o.value===cur)) sel.value=cur;
+    const wh=!!sel.value; sel.classList.toggle("wh",wh); $("msg").classList.toggle("wh",wh);
+    $("compose").hidden = !V || !joined();
+  }
+  function hue(id){ let h=0; for(const ch of String(id)) h=(h*31+ch.charCodeAt(0))>>>0; return h%360; }
+  $("to").addEventListener("change",()=>{ const wh=!!$("to").value; $("to").classList.toggle("wh",wh); $("msg").classList.toggle("wh",wh); $("msg").placeholder=wh?"همس…":"اكتب…"; });
+  $("compose").addEventListener("submit",e=>{ e.preventDefault(); const x=clean($("msg").value,140); if(!x) return; send({t:"chat",x,to:$("to").value||null}); $("msg").value=""; });
+
+  function renderHost(){
+    const h=$("hostBar");
+    if(!isHost||!V){ h.hidden=true; return; }
+    h.hidden=false; h.replaceChildren();
+    const url=(()=>{ const u=new URL(location.href); u.search="?r="+code; u.hash=""; return u.toString(); })();
+    const c=el("code",{text:url});
+    h.append(c, el("button",{class:"btn small",type:"button",text:"انسخ الرابط",onclick:async()=>{
+      try{ await navigator.clipboard.writeText(url); toast("نُسخ ✓"); }catch(e){ const r=document.createRange(); r.selectNodeContents(c); const s=getSelection(); s.removeAllRanges(); s.addRange(r); }
+    }}));
+    const g=V.g;
+    if(g.status==="running"&&g.phase==="bid") h.append(el("button",{class:"btn small ghost",type:"button",onclick:()=>{ H.g.deadline=Date.now(); },text:"اكشف الآن"}));
+    h.append(el("span",{style:"font-size:12px;color:var(--faint)",text:"أبقِ هذا التبويب مفتوحًا"}));
+  }
+
+  /* ---------- timer ---------- */
+  let lastS=-1;
+  setInterval(()=>{
+    if(!V||V.g.status!=="running") return;
+    const s=Math.max(0,Math.ceil((deadlineLocal-performance.now())/1000));
+    if(V.g.phase==="steal"){ /* steal timer includes the reveal animation; show only the choosing part */ }
+    $("timer").textContent=String(V.g.phase==="steal"?Math.min(s,A.STEAL_SECS):s);
+    const hot=V.g.phase==="bid"&&s<=10;
+    $("timerPill").classList.toggle("hot",hot);
+    if(hot&&s!==lastS&&s>0) sfx.tick();
+    lastS=s;
+  },200);
+
+  function createRoom(){ code=rid(6); hosted[code]=true; store.set(PREFIX+"hosted",hosted); isHost=true; history.replaceState(null,"","?r="+code); $("portCode").textContent="PORT · "+code.toUpperCase(); audio(); startHost(); }
+
+  render();
+  if(code&&typeof Peer!=="undefined"){ isHost?startHost():startClient(); }
+})();
+</script>
+</body>
+</html>
