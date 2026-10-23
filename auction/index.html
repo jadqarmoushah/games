@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Stencil+Display:wght@600;800&family=Changa:wght@400;600;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap">
-<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js"></script>
 <style>
 /* Night port: one sodium lamp over the container, chat on the dock office side, traders along the quay */
 :root{
@@ -330,11 +330,11 @@ main{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:16px;
   let deadlineLocal=0, revealDone="", lastLogLen=0;
 
   /* ---------- HOST ---------- */
-  let H=null; const conns=new Map();
+  let H=null; const seen={}, toks={};
   function fresh(){ return {players:{}, g:{status:"lobby", seq:1, round:0, phase:null, deadline:0, deck:[], peekers:[], bids:{}, history:[], peekCounts:{}}, chat:[]}; }
   function hostLoad(){ H=store.get(PREFIX+"room-"+code)||fresh(); }
   const save=()=>store.set(PREFIX+"room-"+code,H);
-  const online=()=>{ const s=new Set([me]); for(const [id,c] of conns) if(c.open) s.add(id); return s; };
+  const online=()=>{ const s=new Set([me]); const t=Date.now(); for(const [id,at] of Object.entries(seen)) if(t-at<12000) s.add(id); return s; };
   const inGame=id=>!!H.players[id] && H.players[id].cash!=null;
   function pubState(){
     const g=H.g, on=online();
@@ -363,7 +363,7 @@ main{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:16px;
     save(); clearTimeout(bt);
     bt=setTimeout(()=>{
       const st=pubState();
-      for(const [id,c] of conns) if(c.open){ try{ c.send({t:"s",st,me:privFor(id)}); }catch(e){} }
+      for(const [id,tk] of Object.entries(toks)) if(id!==me) pub(`${base()}/c/${tk}`,{t:"s",st,me:privFor(id)});
       apply(st,privFor(me));
     },30);
   }
@@ -466,46 +466,62 @@ main{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:16px;
     }
   }
 
-  /* ---------- network ---------- */
-  let peer=null, hc=null, rt=null, send=()=>false;
-  const pid=()=>PREFIX+code;
+  /* ---------- network: relay over a public MQTT broker (works through any NAT) ---------- */
+  const BROKERS=["wss://broker.emqx.io:8084/mqtt","wss://broker.hivemq.com:8884/mqtt","wss://test.mosquitto.org:8081/mqtt"];
+  let bi=Math.max(0,Math.min(BROKERS.length-1,parseInt(params.get("b")||"0",10)||0));
+  let tok=store.get(PREFIX+"tok"); if(!tok){ tok="t"+rid(16); store.set(PREFIX+"tok",tok); }
+  let cli=null, send=()=>false, lastHostMsg=0;
+  const base=()=>"kunanta-port/"+code;
+  const enc=new TextEncoder(), dec=new TextDecoder();
+  function pub(topic,obj){ if(cli&&cli.connected){ try{ cli.publish(topic,JSON.stringify(obj),{qos:0}); }catch(e){} } }
+  function link(i, onUp){
+    const c=mqtt.connect(BROKERS[i],{clientId:"k"+rid(12),clean:true,connectTimeout:7000,reconnectPeriod:2500,keepalive:30});
+    c.on("connect",()=>{ net="open"; onUp&&onUp(c); render(); });
+    c.on("offline",()=>{ net="lost"; render(); });
+    c.on("error",()=>{});
+    return c;
+  }
   function startHost(){
-    hostLoad(); net="connecting"; render();
-    peer=new Peer(pid(),{debug:0});
-    peer.on("open",()=>{ net="open"; commit(); });
-    peer.on("connection",c=>{
-      c.on("open",()=>{
-        const id=String(c.metadata?.id||"").slice(0,20); if(!/^p[a-z0-9]{6,19}$/.test(id)){ c.close(); return; }
-        const old=conns.get(id); if(old&&old!==c){ try{old.close();}catch(e){} }
-        conns.set(id,c);
-        c.on("data",d=>handle(id,d));
-        c.on("close",()=>{ if(conns.get(id)===c){ conns.delete(id); commit(); } });
-        handle(id,{t:"hi",name:c.metadata?.name});
+    hostLoad(); toks[me]=tok; net="connecting"; render();
+    // try brokers in order until one answers, then pin it in the room link
+    let i=bi, done=false;
+    const tryOne=()=>{
+      const c=link(i,()=>{
+        if(done) return; done=true; cli=c; bi=i;
+        history.replaceState(null,"","?r="+code+(bi?"&b="+bi:""));
+        c.subscribe(base()+"/h",{qos:0});
+        commit();
       });
-    });
-    peer.on("disconnected",()=>{ net="lost"; render(); setTimeout(()=>{ try{peer.reconnect();}catch(e){} },1500); });
-    peer.on("error",e=>{ if(e.type==="unavailable-id"){ net="dup"; render(); } });
+      c.on("message",(t,payload)=>{
+        let d; try{ d=JSON.parse(dec.decode(payload)); }catch(e){ return; }
+        if(!d||typeof d.f!=="string"||!/^p[a-z0-9]{6,19}$/.test(d.f)||typeof d.k!=="string") return;
+        if(toks[d.f] && toks[d.f]!==d.k) return;          // someone else using this id
+        const isNew=!toks[d.f]||!seen[d.f]||Date.now()-seen[d.f]>12000;
+        toks[d.f]=d.k; seen[d.f]=Date.now();
+        if(d.m&&d.m.t==="hi") handle(d.f,{t:"hi",name:d.n});
+        else if(d.m) handle(d.f,d.m);
+        if(isNew) commit();
+      });
+      setTimeout(()=>{ if(!done && !c.connected){ try{c.end(true);}catch(e){} i=(i+1)%BROKERS.length; tryOne(); } },8000);
+    };
+    tryOne();
     send=m=>{ handle(me,m); return true; };
     setInterval(tick,250);
+    // heartbeat: re-broadcast so players know the port is open, and drop players who went quiet
+    let lastOn="";
+    setInterval(()=>{ const k=[...online()].sort().join(","); if(k!==lastOn){ lastOn=k; } commit(); },4000);
   }
   function startClient(){
     net="connecting"; render();
-    peer=new Peer(undefined,{debug:0});
-    peer.on("open",connect);
-    peer.on("disconnected",()=>setTimeout(()=>{ try{peer.reconnect();}catch(e){} },1500));
-    peer.on("error",e=>{ if(e.type==="peer-unavailable"){ net="missing"; render(); retry(4000); } else if(["network","server-error","socket-error","socket-closed"].includes(e.type)){ net="lost"; render(); retry(3000); } });
-    send=m=>{ if(hc&&hc.open){ try{ hc.send(m); return true; }catch(e){} } toast("الاتصال مقطوع… نحاول"); return false; };
-  }
-  function retry(ms){ clearTimeout(rt); rt=setTimeout(connect,ms); }
-  function connect(){
-    if(!peer||peer.destroyed) return;
-    if(peer.disconnected){ try{peer.reconnect();}catch(e){} retry(2000); return; }
-    const c=peer.connect(pid(),{reliable:true,metadata:{id:me,name:myName}}); hc=c;
-    const to=setTimeout(()=>{ if(!c.open){ try{c.close();}catch(e){} retry(2500); } },9000);
-    c.on("open",()=>{ clearTimeout(to); net="open"; render(); });
-    c.on("data",d=>{ if(d&&d.t==="s") apply(d.st,d.me); });
-    c.on("close",()=>{ clearTimeout(to); if(hc===c){ net="lost"; render(); retry(2000); } });
-    c.on("error",()=>{});
+    cli=link(bi,c=>{ c.subscribe(`${base()}/c/${tok}`,{qos:0},()=>hello()); });
+    cli.on("message",(t,payload)=>{
+      let d; try{ d=JSON.parse(dec.decode(payload)); }catch(e){ return; }
+      if(d&&d.t==="s"){ lastHostMsg=Date.now(); if(net!=="open") net="open"; apply(d.st,d.me); }
+    });
+    send=m=>{ if(cli&&cli.connected){ pub(base()+"/h",{f:me,k:tok,n:myName,m}); return true; } toast("الاتصال مقطوع… نحاول"); return false; };
+    const hello=()=>pub(base()+"/h",{f:me,k:tok,n:myName,m:{t:"hi"}});
+    setInterval(()=>{ if(cli&&cli.connected){ pub(base()+"/h",{f:me,k:tok,n:myName,m:{t:"ping"}}); } },4000);
+    setInterval(()=>{ const was=net; if(cli&&cli.connected){ net = Date.now()-lastHostMsg<12000 ? "open" : "missing"; } if(was!==net) render(); },1500);
   }
 
   /* ---------- apply ---------- */
@@ -573,7 +589,7 @@ main{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:16px;
         el("button",{class:"btn",type:"button",onclick:createRoom,text:"افتح الميناء"})));
       return;
     }
-    if(typeof Peer==="undefined"){ s.append(center(el("h3",{text:"لا اتصال"}),el("p",{text:"تأكد من الإنترنت وحدّث الصفحة."}))); return; }
+    if(typeof mqtt==="undefined"){ s.append(center(el("h3",{text:"لا اتصال"}),el("p",{text:"تأكد من الإنترنت وحدّث الصفحة."}))); return; }
     if(net==="dup"){ s.append(center(el("h3",{text:"الميناء مفتوح في تبويب آخر"}))); return; }
     if(!V){ s.append(center(el("h3",{text:net==="missing"?"الميناء مغلق الآن":"…"}),net==="missing"?el("p",{text:"ندخلك فور وصول صاحب المزاد."}):null)); return; }
 
@@ -740,7 +756,7 @@ main{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:16px;
     const h=$("hostBar");
     if(!isHost||!V){ h.hidden=true; return; }
     h.hidden=false; h.replaceChildren();
-    const url=(()=>{ const u=new URL(location.href); u.search="?r="+code; u.hash=""; return u.toString(); })();
+    const url=(()=>{ const u=new URL(location.href); u.search="?r="+code+(bi?"&b="+bi:""); u.hash=""; return u.toString(); })();
     const c=el("code",{text:url});
     h.append(c, el("button",{class:"btn small",type:"button",text:"انسخ الرابط",onclick:async()=>{
       try{ await navigator.clipboard.writeText(url); toast("نُسخ ✓"); }catch(e){ const r=document.createRange(); r.selectNodeContents(c); const s=getSelection(); s.removeAllRanges(); s.addRange(r); }
@@ -766,7 +782,7 @@ main{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:16px;
   function createRoom(){ code=rid(6); hosted[code]=true; store.set(PREFIX+"hosted",hosted); isHost=true; history.replaceState(null,"","?r="+code); $("portCode").textContent="PORT · "+code.toUpperCase(); audio(); startHost(); }
 
   render();
-  if(code&&typeof Peer!=="undefined"){ isHost?startHost():startClient(); }
+  if(code&&typeof mqtt!=="undefined"){ isHost?startHost():startClient(); }
 })();
 </script>
 </body>
